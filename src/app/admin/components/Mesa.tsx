@@ -27,7 +27,7 @@ export default function Mesa() {
         status: MesaStatus.LIVRE,
         tipo_cardapio_id: '',
         qr_code: '',
-        ativa: true
+        ativo: true
     });
 
     // Status das mesas
@@ -124,7 +124,7 @@ export default function Mesa() {
             status: MesaStatus.LIVRE,
             tipo_cardapio_id: '',
             qr_code: '',
-            ativa: true
+            ativo: true
         });
         setModalMode('criar');
         setShowModal(true);
@@ -399,7 +399,7 @@ export default function Mesa() {
                                         </p>
                                     )}
                                     <p className="mb-2 text-sm text-slate-400">
-                                        Ativa: <span className="font-medium text-white">{mesa.ativa ? 'Sim' : 'Não'}</span>
+                                        Ativa: <span className="font-medium text-white">{mesa.ativo ? 'Sim' : 'Não'}</span>
                                     </p>
                                     
                                     <div className="mt-4 flex justify-end space-x-2">
@@ -483,7 +483,7 @@ export default function Mesa() {
                                                 type="checkbox"
                                                 id="ativo"
                                                 name="ativo"
-                                                checked={currentMesa.ativa ?? true} // Default true se undefined
+                                                checked={currentMesa.ativo ?? true} // Default true se undefined
                                                 onChange={(e) => setCurrentMesa(prev => ({ ...prev, ativa: e.target.checked }))}
                                                 className="h-4 w-4 rounded border-slate-700 bg-slate-800 text-amber-600 focus:ring-amber-500"
                                             />

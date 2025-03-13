@@ -14,7 +14,7 @@ export interface Mesa {
     status: MesaStatus;
     qr_code: string;
     tipo_cardapio_id: string; //UUID
-    ativa: boolean;
+    ativo: boolean;
 }
 
 const api = axios.create({
