@@ -11,25 +11,72 @@ import {
   getPedidosPorStatus,
   StatusPedido,
   Pedido as PedidoType,
-  ItemPedido
+  removerItemDoPedido,
+  adicionarItemAoPedido,
+  atualizarItemDoPedido
 } from '@/lib/pedido';
 import { getProdutos, Produto } from '@/lib/cardapio';
 import { getMesas, Mesa } from '@/lib/mesa';
+import axios from 'axios';
+
+// Atualizando a interface PedidoType para usar id em vez de _id
+interface PedidoWithFallbackId extends Omit<PedidoType, 'id'> {
+  id: string;
+  _id?: string; // Mantido para compatibilidade com código existente
+}
+
+// Interfaces para melhorar a tipagem e evitar 'any'
+interface CurrentPedidoState {
+  id?: string;
+  _id?: string; // Mantido para compatibilidade
+  mesa_id: string;
+  itens: Array<{
+    id?: string;
+    _id?: string; // Mantido para compatibilidade
+    produto_id: string;
+    quantidade: number;
+    observacoes?: string;
+    preco_unitario?: number;
+    valor_unitario?: number; // Adicionado para compatibilidade
+    valor_total?: number; // Adicionado para compatibilidade
+    produto?: {
+      nome: string;
+      preco: number;
+    }
+  }>;
+  status: StatusPedido;
+  observacao_geral?: string;
+  valor_total: number;
+}
+
+interface CurrentItemState {
+  id?: string;
+  _id?: string; // Mantido para compatibilidade
+  produto_id: string;
+  quantidade: number;
+  observacoes?: string;
+  preco_unitario?: number;
+  produto?: {
+    nome: string;
+    preco: number;
+  }
+}
 
 export default function Pedido() {
   // Estados para gerenciamento de pedidos
-  const [pedidos, setPedidos] = useState<PedidoType[]>([]);
+  const [pedidos, setPedidos] = useState<PedidoWithFallbackId[]>([]);
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [mesas, setMesas] = useState<Mesa[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [filtroStatus, setFiltroStatus] = useState<StatusPedido | ''>('');
   const [filtroMesa, setFiltroMesa] = useState<string>('');
 
   // Estados para modal
   const [showModal, setShowModal] = useState(false);
   const [modalMode, setModalMode] = useState<'criar' | 'editar' | 'visualizar'>('criar');
-  const [currentPedido, setCurrentPedido] = useState<Partial<PedidoType>>({
+  const [currentPedido, setCurrentPedido] = useState<CurrentPedidoState>({
     mesa_id: '',
     itens: [],
     status: StatusPedido.ABERTO,
@@ -39,7 +86,7 @@ export default function Pedido() {
 
   // Estado para modal de item
   const [showItemModal, setShowItemModal] = useState(false);
-  const [currentItem, setCurrentItem] = useState<Partial<ItemPedido>>({
+  const [currentItem, setCurrentItem] = useState<CurrentItemState>({
     produto_id: '',
     quantidade: 1,
     observacoes: ''
@@ -50,6 +97,19 @@ export default function Pedido() {
   useEffect(() => {
     fetchData();
   }, [filtroStatus, filtroMesa]);
+
+  useEffect(() => {
+    if (success) {
+      const timer = setTimeout(() => {
+        setSuccess(null);
+        // Recarregar os dados para garantir que temos as informações mais recentes
+        fetchData();
+      }, 3000);
+      
+      // Limpar o timeout se o componente for desmontado
+      return () => clearTimeout(timer);
+    }
+  }, [success]);
 
   const fetchData = async () => {
     try {
@@ -69,7 +129,7 @@ export default function Pedido() {
       if (filtroStatus && filtroMesa) {
         // Se ambos os filtros estiverem ativos, precisamos filtrar manualmente
         const pedidosPorStatus = await getPedidosPorStatus(filtroStatus as StatusPedido);
-        pedidosData = pedidosPorStatus.filter(p => p.mesa_id === filtroMesa);
+        pedidosData = pedidosPorStatus.filter((p: PedidoType) => p.mesa_id === filtroMesa);
       } else if (filtroStatus) {
         pedidosData = await getPedidosPorStatus(filtroStatus as StatusPedido);
       } else if (filtroMesa) {
@@ -90,6 +150,10 @@ export default function Pedido() {
   };
 
   const handleOpenCreateModal = () => {
+    // Limpar mensagens de erro/sucesso
+    setError(null);
+    setSuccess(null);
+    
     setCurrentPedido({
       mesa_id: mesas.length > 0 ? mesas[0].id : '',
       itens: [],
@@ -102,12 +166,34 @@ export default function Pedido() {
   };
 
   const handleOpenEditModal = (pedido: PedidoType) => {
-    setCurrentPedido({ ...pedido });
+    // Limpar mensagens de erro/sucesso
+    setError(null);
+    setSuccess(null);
+    
+    // Verificar se o pedido tem ID antes de abrir o modal
+    if (!pedido.id) {
+      console.error('Tentativa de editar pedido sem ID:', pedido);
+      setError('Não é possível editar um pedido sem ID');
+      return;
+    }
+    
+    console.log('Abrindo modal de edição para pedido:', pedido);
+    console.log('ID do pedido a ser editado:', pedido.id);
+    
+    // Criar uma cópia do pedido para evitar referências
+    const pedidoCopy = { ...pedido };
+    console.log('Cópia do pedido para edição:', pedidoCopy);
+    
+    setCurrentPedido(pedidoCopy);
     setModalMode('editar');
     setShowModal(true);
   };
 
   const handleOpenViewModal = (pedido: PedidoType) => {
+    // Limpar mensagens de erro/sucesso
+    setError(null);
+    setSuccess(null);
+    
     setCurrentPedido({ ...pedido });
     setModalMode('visualizar');
     setShowModal(true);
@@ -115,6 +201,8 @@ export default function Pedido() {
 
   const handleCloseModal = () => {
     setShowModal(false);
+    // Recarregar dados ao fechar modal para garantir sincronização
+    fetchData();
   };
 
   const handleOpenAddItemModal = () => {
@@ -128,7 +216,7 @@ export default function Pedido() {
     setShowItemModal(true);
   };
 
-  const handleOpenEditItemModal = (item: ItemPedido, index: number) => {
+  const handleOpenEditItemModal = (item: CurrentItemState, index: number) => {
     setCurrentItem({ ...item });
     setItemModalMode('editar');
     setItemIndex(index);
@@ -153,61 +241,333 @@ export default function Pedido() {
     }
   };
 
+  const handleRemoveItemFromPedido = async (pedidoId: string, itemId: string) => {
+    try {
+      console.log('===== INÍCIO DA REMOÇÃO DE ITEM VIA API =====');
+      console.log('ID do pedido:', pedidoId);
+      console.log('ID do item:', itemId);
+      
+      const resultado = await removerItemDoPedido(pedidoId, itemId);
+      console.log('Resposta da API após remoção de item:', resultado);
+      
+      // Atualizar o pedido na lista
+      setPedidos(prev => 
+        prev.map(p => p.id === pedidoId ? resultado : p)
+      );
+      
+      // Atualizar o pedido atual se estiver aberto
+      if (currentPedido.id === pedidoId) {
+        setCurrentPedido(resultado);
+      }
+      
+      setSuccess('Item removido com sucesso!');
+      console.log('===== FIM DA REMOÇÃO DE ITEM VIA API =====');
+    } catch (error: unknown) {
+      console.error('Erro detalhado ao remover item:', error);
+      
+      if (axios.isAxiosError(error) && error.response) {
+        console.error('Resposta da API:', error.response.data);
+        console.error('Status:', error.response.status);
+        
+        const errorMessage = error.response.data.detail || (error instanceof Error ? error.message : 'Erro desconhecido');
+        setError(`Falha ao remover item: ${errorMessage}`);
+      } else {
+        const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+        setError(`Falha ao remover item: ${errorMessage}`);
+      }
+    }
+  };
+
+  const handleAddItemToPedido = async (pedidoId: string, item: { produto_id: string; quantidade: number; observacoes?: string }) => {
+    try {
+      console.log('===== INÍCIO DA ADIÇÃO DE ITEM VIA API =====');
+      console.log('ID do pedido:', pedidoId);
+      console.log('Dados do item a adicionar:', item);
+      
+      const resultado = await adicionarItemAoPedido(pedidoId, item);
+      console.log('Resposta da API após adição de item:', resultado);
+      
+      // Atualizar o pedido na lista
+      setPedidos(prev => 
+        prev.map(p => p.id === pedidoId ? resultado : p)
+      );
+      
+      // Atualizar o pedido atual se estiver aberto
+      if (currentPedido.id === pedidoId) {
+        setCurrentPedido(resultado);
+      }
+      
+      setSuccess('Item adicionado com sucesso!');
+      console.log('===== FIM DA ADIÇÃO DE ITEM VIA API =====');
+      
+      return resultado;
+    } catch (error: unknown) {
+      console.error('Erro detalhado ao adicionar item:', error);
+      
+      if (axios.isAxiosError(error) && error.response) {
+        console.error('Resposta da API:', error.response.data);
+        console.error('Status:', error.response.status);
+        
+        const errorMessage = error.response.data.detail || (error instanceof Error ? error.message : 'Erro desconhecido');
+        setError(`Falha ao adicionar item: ${errorMessage}`);
+      } else {
+        const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+        setError(`Falha ao adicionar item: ${errorMessage}`);
+      }
+      
+      throw error;
+    }
+  };
+
+  const handleUpdateItemQuantity = async (pedidoId: string, itemId: string, quantidade: number, observacoes?: string) => {
+    try {
+      console.log('===== INÍCIO DA ATUALIZAÇÃO DE ITEM VIA API =====');
+      console.log('ID do pedido:', pedidoId);
+      console.log('ID do item:', itemId);
+      console.log('Nova quantidade:', quantidade);
+      console.log('Observações:', observacoes);
+      
+      const resultado = await atualizarItemDoPedido(pedidoId, itemId, { quantidade, observacoes });
+      console.log('Resposta da API após atualização de item:', resultado);
+      
+      // Atualizar o pedido na lista
+      setPedidos(prev => 
+        prev.map(p => p.id === pedidoId ? resultado : p)
+      );
+      
+      // Atualizar o pedido atual se estiver aberto
+      if (currentPedido.id === pedidoId) {
+        setCurrentPedido(resultado);
+      }
+      
+      setSuccess('Item atualizado com sucesso!');
+      console.log('===== FIM DA ATUALIZAÇÃO DE ITEM VIA API =====');
+      
+      return resultado;
+    } catch (error: unknown) {
+      console.error('Erro detalhado ao atualizar item:', error);
+      
+      if (axios.isAxiosError(error) && error.response) {
+        console.error('Resposta da API:', error.response.data);
+        console.error('Status:', error.response.status);
+        
+        const errorMessage = error.response.data.detail || (error instanceof Error ? error.message : 'Erro desconhecido');
+        setError(`Falha ao atualizar item: ${errorMessage}`);
+      } else {
+        const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+        setError(`Falha ao atualizar item: ${errorMessage}`);
+      }
+      
+      throw error;
+    }
+  };
+
   const handleSaveItem = () => {
-    if (!currentItem.produto_id) {
-      alert('Selecione um produto');
-      return;
-    }
-
-    const produto = produtos.find(p => p.id === currentItem.produto_id);
-    if (!produto) {
-      alert('Produto não encontrado');
-      return;
-    }
-
-    const novoItem = {
-      produto_id: currentItem.produto_id,
-      quantidade: currentItem.quantidade || 1,
-      observacoes: currentItem.observacoes || '',
-      preco_unitario: produto.preco,
-      // Campos adicionais para exibição
-      _id: currentItem._id || `temp-${Date.now()}`,
-      produto: { nome: produto.nome, preco: produto.preco }
-    };
-
-    if (itemModalMode === 'adicionar') {
-      setCurrentPedido(prev => ({
-        ...prev,
-        itens: [...(prev.itens || []), novoItem],
-        valor_total: (prev.valor_total || 0) + (novoItem.quantidade * produto.preco)
-      }));
-    } else {
-      const itensAtualizados = [...(currentPedido.itens || [])];
-      const itemAntigo = itensAtualizados[itemIndex];
-      itensAtualizados[itemIndex] = novoItem;
+    console.log('===== INÍCIO DO SALVAMENTO DE ITEM =====');
+    console.log('Estado atual do item:', currentItem);
+    console.log('Modo do item:', itemModalMode);
+    
+    try {
+      if (!currentItem.produto_id) {
+        console.error('Produto não selecionado');
+        setError('Selecione um produto');
+        return;
+      }
       
-      // Recalcular valor total
-      const valorAntigoItem = itemAntigo.quantidade * itemAntigo.preco_unitario;
-      const valorNovoItem = novoItem.quantidade * novoItem.preco_unitario;
-      const diferencaValor = valorNovoItem - valorAntigoItem;
+      if (!currentItem.quantidade || currentItem.quantidade <= 0) {
+        console.error('Quantidade inválida:', currentItem.quantidade);
+        setError('Informe uma quantidade válida');
+        return;
+      }
       
-      setCurrentPedido(prev => ({
-        ...prev,
-        itens: itensAtualizados,
-        valor_total: (prev.valor_total || 0) + diferencaValor
-      }));
+      // Verificar se o produto existe
+      const produtoSelecionado = produtos.find(p => p.id === currentItem.produto_id);
+      if (!produtoSelecionado) {
+        console.error('Produto não encontrado na lista:', currentItem.produto_id);
+        setError('Produto não encontrado');
+        return;
+      }
+      
+      console.log('Produto selecionado:', produtoSelecionado);
+      
+      // Se o pedido já existe no backend e tem ID, usar as APIs
+      if (currentPedido.id) {
+        console.log('Pedido já existe no backend, usando APIs para manipulação de itens');
+        
+        if (itemModalMode === 'adicionar') {
+          // Usar a API para adicionar item ao pedido existente
+          handleAddItemToPedido(currentPedido.id, {
+            produto_id: currentItem.produto_id,
+            quantidade: currentItem.quantidade,
+            observacoes: currentItem.observacoes
+          });
+          
+          // Fechar o modal e retornar (o resto será tratado pelo callback da API)
+          setShowItemModal(false);
+          return;
+        } else if (itemModalMode === 'editar') {
+          // Verificar se temos o item e seu ID
+          if (itemIndex === null || itemIndex < 0 || !currentPedido.itens || !currentPedido.itens[itemIndex]) {
+            console.error('Item não encontrado para edição');
+            setError('Item não encontrado para edição');
+            return;
+          }
+          
+          const itemAtual = currentPedido.itens[itemIndex];
+          const itemId = itemAtual.id || itemAtual._id;
+          
+          if (!itemId) {
+            console.error('ID do item não encontrado para atualização');
+            setError('ID do item não encontrado. Não é possível atualizar.');
+            return;
+          }
+          
+          // Usar a API para atualizar o item
+          handleUpdateItemQuantity(
+            currentPedido.id, 
+            itemId, 
+            currentItem.quantidade, 
+            currentItem.observacoes
+          );
+          
+          // Fechar o modal e retornar (o resto será tratado pelo callback da API)
+          setShowItemModal(false);
+          return;
+        }
+      }
+      
+      // Lógica para pedidos em criação (que ainda não têm ID no backend)
+      if (itemModalMode === 'adicionar') {
+        // Adicionar novo item ao pedido atual
+        const novoItem = {
+          id: `temp-${Date.now()}`, // ID temporário para novos itens
+          produto_id: currentItem.produto_id,
+          produto: produtoSelecionado,
+          quantidade: currentItem.quantidade,
+          observacoes: currentItem.observacoes,
+          valor_unitario: produtoSelecionado.preco,
+          valor_total: produtoSelecionado.preco * currentItem.quantidade
+        };
+        
+        console.log('Novo item a ser adicionado:', novoItem);
+        
+        setCurrentPedido(prev => ({
+          ...prev,
+          itens: [...(prev.itens || []), novoItem],
+          valor_total: (prev.valor_total || 0) + novoItem.valor_total
+        }));
+        
+        console.log('Item adicionado com sucesso');
+      } else if (itemModalMode === 'editar') {
+        // Editar item existente
+        if (itemIndex === null || itemIndex < 0) {
+          console.error('Índice do item inválido:', itemIndex);
+          setError('Item não encontrado para edição');
+          return;
+        }
+        
+        console.log('Índice do item para edição:', itemIndex);
+        
+        // Verificar se o item existe no array
+        if (!currentPedido.itens || !currentPedido.itens[itemIndex]) {
+          console.error('Item não encontrado no índice:', itemIndex);
+          setError('Item não encontrado no pedido');
+          return;
+        }
+        
+        // Calcular o valor total do item atualizado
+        const valorTotal = produtoSelecionado.preco * currentItem.quantidade;
+        
+        // Obter o valor total do item atual antes da atualização
+        const itemAtual = currentPedido.itens[itemIndex];
+        const valorAnterior = itemAtual.valor_total || 0;
+        
+        console.log('Valor anterior do item:', valorAnterior);
+        console.log('Novo valor do item:', valorTotal);
+        
+        // Atualizar o item no array de itens
+        const itensAtualizados = [...currentPedido.itens];
+        itensAtualizados[itemIndex] = {
+          ...itemAtual,
+          produto_id: currentItem.produto_id,
+          produto: produtoSelecionado,
+          quantidade: currentItem.quantidade,
+          observacoes: currentItem.observacoes,
+          valor_unitario: produtoSelecionado.preco,
+          valor_total: valorTotal
+        };
+        
+        // Atualizar o pedido com o item modificado e recalcular o valor total
+        setCurrentPedido(prev => ({
+          ...prev,
+          itens: itensAtualizados,
+          valor_total: (prev.valor_total || 0) - valorAnterior + valorTotal
+        }));
+        
+        console.log('Item atualizado com sucesso');
+      }
+      
+      // Resetar o estado do item atual e fechar o modal
+      setCurrentItem({
+        produto_id: '',
+        quantidade: 1,
+        observacoes: ''
+      });
+      setShowItemModal(false);
+      console.log('===== FIM DO SALVAMENTO DE ITEM =====');
+    } catch (error: unknown) {
+      console.error('Erro detalhado ao salvar item:', error);
+      
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+      setError(`Falha ao salvar o item: ${errorMessage}`);
     }
-
-    setShowItemModal(false);
   };
 
   const handleRemoveItem = (index: number) => {
+    // Verificar se o pedido e o item existem
+    if (!currentPedido || !currentPedido.itens || !currentPedido.itens[index]) {
+      console.error('Pedido ou item não encontrado para remover');
+      setError('Pedido ou item não encontrado');
+      return;
+    }
+    
+    // Debug para verificar a estrutura do item
+    const item = currentPedido.itens[index];
+    console.log('Item a ser removido:', item);
+    
+    // Se o pedido já existe no backend, usar a API
+    if (currentPedido.id) {
+      // Verificar se o item tem ID (verificando todas as possíveis propriedades)
+      const itemId = item.id || item._id;
+      
+      if (itemId) {
+        console.log(`Removendo item pelo ID: ${itemId} do pedido: ${currentPedido.id}`);
+        handleRemoveItemFromPedido(currentPedido.id, itemId);
+        return;
+      } else {
+        console.error('ID do item não encontrado para remoção via API');
+        setError('ID do item não encontrado. Não é possível remover.');
+        return;
+      }
+    }
+    
+    // Lógica para pedidos em criação (que ainda não têm ID no backend)
+    console.log('Removendo item localmente (pedido em criação)');
     const itens = [...(currentPedido.itens || [])];
     const itemRemovido = itens[index];
-    const valorItemRemovido = itemRemovido.quantidade * itemRemovido.preco_unitario;
     
+    // Calcular o valor a ser removido
+    let valorItemRemovido = 0;
+    if (itemRemovido.preco_unitario) {
+      valorItemRemovido = itemRemovido.quantidade * itemRemovido.preco_unitario;
+    } else if (itemRemovido.produto?.preco) {
+      valorItemRemovido = itemRemovido.quantidade * itemRemovido.produto.preco;
+    }
+    
+    // Remover o item da lista
     itens.splice(index, 1);
     
+    // Atualizar o estado
     setCurrentPedido(prev => ({
       ...prev,
       itens: itens,
@@ -230,40 +590,66 @@ export default function Pedido() {
     
     try {
       if (modalMode === 'criar') {
-        // Formatar itens para o formato esperado pela API
-        const itensFormatados = currentPedido.itens.map(item => ({
-          produto_id: item.produto_id,
-          quantidade: item.quantidade,
-          observacoes: item.observacoes || undefined
-        }));
+        // Log detalhado para debug
+        console.log('===== INÍCIO DA CRIAÇÃO DE PEDIDO =====');
+        console.log('Mesa ID:', currentPedido.mesa_id);
+        console.log('Quantidade de itens:', currentPedido.itens.length);
         
-        const novoPedido = await createPedido({
+        // Formatar itens para o formato esperado pela API
+        const itensFormatados = currentPedido.itens.map(item => {
+          const itemFormatado = {
+            produto_id: item.produto_id,
+            quantidade: item.quantidade,
+            observacoes: item.observacoes || undefined
+          };
+          console.log('Item formatado:', itemFormatado);
+          return itemFormatado;
+        });
+        
+        const dadosPedido = {
           mesa_id: currentPedido.mesa_id,
           itens: itensFormatados,
           observacao_geral: currentPedido.observacao_geral || undefined,
           manual: true
-        });
+        };
+        
+        console.log('Dados do pedido a ser enviado:', dadosPedido);
+        
+        const novoPedido = await createPedido(dadosPedido);
+        console.log('Resposta da API após criação:', novoPedido);
         
         setPedidos(prev => [...prev, novoPedido]);
       } else if (modalMode === 'editar') {
-        if (!currentPedido._id) return;
+        if (!currentPedido.id) return;
         
         // Atualizar apenas os campos permitidos
-        const pedidoAtualizado = await updatePedido(currentPedido._id, {
+        const pedidoAtualizado = await updatePedido(currentPedido.id, {
           status: currentPedido.status,
           observacao_geral: currentPedido.observacao_geral
         });
         
         setPedidos(prev => 
-          prev.map(p => p._id === pedidoAtualizado._id ? pedidoAtualizado : p)
+          prev.map(p => p.id === pedidoAtualizado.id ? pedidoAtualizado : p)
         );
       }
       
       setShowModal(false);
+      setSuccess("Pedido salvo com sucesso!");
       fetchData(); // Recarregar dados para garantir consistência
-    } catch (err) {
-      console.error('Erro ao salvar pedido:', err);
-      setError('Falha ao salvar o pedido. Tente novamente mais tarde.');
+    } catch (error: unknown) {
+      console.error('Erro detalhado ao salvar pedido:', error);
+      
+      if (axios.isAxiosError(error) && error.response) {
+        console.error('Resposta da API:', error.response.data);
+        console.error('Status:', error.response.status);
+        console.error('Headers:', error.response.headers);
+        
+        const errorMessage = error.response.data.detail || (error instanceof Error ? error.message : 'Erro desconhecido');
+        setError(`Falha ao salvar o pedido: ${errorMessage}`);
+      } else {
+        const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+        setError(`Falha ao salvar o pedido: ${errorMessage}`);
+      }
     }
   };
 
@@ -271,11 +657,47 @@ export default function Pedido() {
     if (!confirm('Tem certeza que deseja excluir este pedido?')) return;
     
     try {
-      await deletePedido(id);
-      setPedidos(prev => prev.filter(p => p._id !== id));
-    } catch (err) {
-      console.error('Erro ao excluir pedido:', err);
-      setError('Falha ao excluir o pedido. Tente novamente mais tarde.');
+      // Debug detalhado
+      console.log('===== INÍCIO DA EXCLUSÃO =====');
+      console.log('ID recebido pela função:', id);
+      console.log('Tipo do ID:', typeof id);
+      
+      if (!id) {
+        console.error('ID inválido ou undefined');
+        setError('ID do pedido inválido ou não encontrado');
+        return;
+      }
+      
+      console.log('Iniciando exclusão do pedido ID:', id);
+      setIsLoading(true);
+      
+      // Chamada para a API
+      const resultado = await deletePedido(id);
+      console.log('Resposta da API após exclusão:', resultado);
+      
+      // Atualizar a lista de pedidos
+      setPedidos(prev => prev.filter(p => p.id !== id));
+      setSuccess('Pedido excluído com sucesso!');
+      
+      // Fechar o modal se estiver aberto
+      setShowModal(false);
+      console.log('===== FIM DA EXCLUSÃO =====');
+    } catch (error: unknown) {
+      console.error('Erro detalhado ao excluir pedido:', error);
+      
+      if (axios.isAxiosError(error) && error.response) {
+        console.error('Resposta da API:', error.response.data);
+        console.error('Status:', error.response.status);
+        console.error('Headers:', error.response.headers);
+        
+        const errorMessage = error.response.data.detail || (error instanceof Error ? error.message : 'Erro desconhecido');
+        setError(`Falha ao excluir o pedido: ${errorMessage}`);
+      } else {
+        const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+        setError(`Falha ao excluir o pedido: ${errorMessage}`);
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -283,7 +705,7 @@ export default function Pedido() {
     try {
       const pedidoAtualizado = await atualizarStatusPedido(id, status);
       setPedidos(prev => 
-        prev.map(p => p._id === pedidoAtualizado._id ? pedidoAtualizado : p)
+        prev.map(p => p.id === pedidoAtualizado.id ? pedidoAtualizado : p)
       );
     } catch (err) {
       console.error('Erro ao atualizar status do pedido:', err);
@@ -335,33 +757,81 @@ export default function Pedido() {
 
   const handleFinalizarEdicao = async () => {
     try {
-      setIsLoading(true);
-      // Aqui você pode adicionar a lógica para finalizar a edição do pedido
-      // Por exemplo, atualizar o pedido no backend
-      setSuccess("Edição finalizada com sucesso!");
-      setIsModalOpen(false); // Fecha o modal após finalizar
-    } catch (err) {
-      console.error('Erro ao finalizar edição:', err);
-      setError('Falha ao finalizar edição. Tente novamente.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleDeletePedido = async () => {
-    try {
-      if (window.confirm('Tem certeza que deseja excluir este pedido?')) {
-        setIsLoading(true);
-        // Aqui você pode adicionar a lógica para excluir o pedido
-        // Por exemplo, chamar a função deletePedido do backend
-        setSuccess("Pedido excluído com sucesso!");
-        setIsModalOpen(false); // Fecha o modal após excluir
+      console.log('===== INÍCIO DA FINALIZAÇÃO DE EDIÇÃO =====');
+      console.log('Estado atual do pedido:', currentPedido);
+      
+      // Verificar se temos um ID válido
+      const pedidoId = currentPedido.id;
+      if (!pedidoId) {
+        console.error('ID do pedido não encontrado para finalizar edição');
+        setError('ID do pedido não encontrado para finalizar edição');
+        return;
       }
-    } catch (err) {
-      console.error('Erro ao excluir pedido:', err);
-      setError('Falha ao excluir pedido. Tente novamente.');
-    } finally {
-      setIsLoading(false);
+      
+      console.log('ID do pedido para finalização:', pedidoId);
+      console.log('Tipo do ID:', typeof pedidoId);
+      
+      // Verificar se há itens no pedido
+      if (!currentPedido.itens || currentPedido.itens.length === 0) {
+        console.error('Pedido sem itens para finalizar');
+        setError('Adicione pelo menos um item ao pedido');
+        return;
+      }
+      
+      console.log('Quantidade de itens:', currentPedido.itens.length);
+      
+      // Formatar itens para o formato esperado pela API
+      const itensFormatados = currentPedido.itens.map(item => {
+        const itemFormatado = {
+          produto_id: item.produto_id,
+          quantidade: item.quantidade,
+          observacoes: item.observacoes || undefined
+        };
+        console.log('Item formatado:', itemFormatado);
+        return itemFormatado;
+      });
+      
+      // Preparar dados para atualização
+      const dadosAtualizacao = {
+        mesa_id: currentPedido.mesa_id,
+        itens: itensFormatados,
+        observacao_geral: currentPedido.observacao_geral || undefined,
+        status: currentPedido.status
+      };
+      
+      console.log('Dados para atualização:', dadosAtualizacao);
+      console.log('URL completa:', `/api/pedidos/${pedidoId}`);
+      
+      // Chamar a API para atualizar o pedido
+      const pedidoAtualizado = await updatePedido(pedidoId, dadosAtualizacao);
+      console.log('Resposta da API após atualização:', pedidoAtualizado);
+      
+      // Atualizar o estado local
+      setPedidos(prev => 
+        prev.map(p => (p.id === pedidoId || p._id === pedidoId) ? pedidoAtualizado : p)
+      );
+      
+      // Fechar o modal e mostrar mensagem de sucesso
+      setShowModal(false);
+      setSuccess('Pedido atualizado com sucesso!');
+      console.log('===== FIM DA FINALIZAÇÃO DE EDIÇÃO =====');
+      
+      // Recarregar dados para garantir consistência
+      fetchData();
+    } catch (error: unknown) {
+      console.error('Erro detalhado ao finalizar edição:', error);
+      
+      if (axios.isAxiosError(error) && error.response) {
+        console.error('Resposta da API:', error.response.data);
+        console.error('Status:', error.response.status);
+        console.error('Headers:', error.response.headers);
+        
+        const errorMessage = error.response.data.detail || (error instanceof Error ? error.message : 'Erro desconhecido');
+        setError(`Falha ao atualizar o pedido: ${errorMessage}`);
+      } else {
+        const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+        setError(`Falha ao atualizar o pedido: ${errorMessage}`);
+      }
     }
   };
 
@@ -392,6 +862,31 @@ export default function Pedido() {
             </div>
           </div>
         </div>
+      </div>
+    );
+  }
+
+  if (success) {
+    return (
+      <div className="mb-4">
+        <div className="rounded-md bg-green-50 p-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-green-800">Sucesso</h3>
+              <div className="mt-2 text-sm text-green-700">
+                <p>{success}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {/* Ainda renderizar o componente principal para não bloquear a interface */}
+        <Pedidos />
       </div>
     );
   }
@@ -477,7 +972,7 @@ export default function Pedido() {
                 </thead>
                 <tbody className="divide-y divide-slate-800 bg-slate-900">
                   {pedidos.map((pedido) => (
-                    <tr key={pedido._id} className="hover:bg-slate-800/50">
+                    <tr key={pedido.id} className="hover:bg-slate-800/50">
                       <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-white">
                         {getMesaNome(pedido.mesa_id)}
                       </td>
@@ -508,7 +1003,19 @@ export default function Pedido() {
                               Editar
                             </button>
                             <button 
-                              onClick={() => pedido._id && handleDeletePedido(pedido._id)}
+                              onClick={() => {
+                                // Debug detalhado
+                                console.log('Dados do pedido completo:', pedido);
+                                console.log('Botão de exclusão clicado para pedido ID:', pedido.id);
+                                
+                                // Usar sempre o id para a exclusão
+                                if (pedido.id) {
+                                  handleDeletePedido(pedido.id);
+                                } else {
+                                  console.error('ID do pedido não encontrado ao tentar excluir');
+                                  setError('ID do pedido não encontrado');
+                                }
+                              }}
                               className="text-red-500 hover:text-red-400"
                             >
                               Excluir
@@ -524,7 +1031,7 @@ export default function Pedido() {
               {/* Layout de cards para telas pequenas */}
               <div className="divide-y divide-slate-800 md:hidden">
                 {pedidos.map((pedido) => (
-                  <div key={pedido._id} className="block bg-slate-900 p-4 hover:bg-slate-800/50">
+                  <div key={pedido.id} className="block bg-slate-900 p-4 hover:bg-slate-800/50">
                     <div className="flex items-center justify-between">
                       <h3 className="text-base font-medium text-white">{getMesaNome(pedido.mesa_id)}</h3>
                       <span className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${getStatusColor(pedido.status)}`}>
@@ -559,7 +1066,19 @@ export default function Pedido() {
                             Editar
                           </button>
                           <button 
-                            onClick={() => pedido._id && handleDeletePedido(pedido._id)}
+                            onClick={() => {
+                              // Debug detalhado
+                              console.log('Dados do pedido completo:', pedido);
+                              console.log('Botão de exclusão clicado para pedido ID:', pedido.id);
+                              
+                              // Usar sempre o id para a exclusão
+                              if (pedido.id) {
+                                handleDeletePedido(pedido.id);
+                              } else {
+                                console.error('ID do pedido não encontrado ao tentar excluir');
+                                setError('ID do pedido não encontrado');
+                              }
+                            }}
                             className="rounded-md bg-red-600/20 px-3 py-1.5 text-sm font-medium text-red-500 hover:bg-red-600/30"
                           >
                             Excluir
@@ -695,8 +1214,8 @@ export default function Pedido() {
                       </div>
                     ) : (
                       <div className="mt-2 space-y-2">
-                        {currentPedido.itens.map((item, index) => (
-                          <div key={item._id || index} className="rounded-md border border-slate-700 bg-slate-800/50 p-3">
+                        {currentPedido.itens.map((item, index: number) => (
+                          <div key={item.id || `item-${index}`} className="rounded-md border border-slate-700 bg-slate-800/50 p-3">
                             <div className="flex items-center justify-between">
                               <div className="flex-1">
                                 <p className="font-medium text-white">
@@ -704,7 +1223,7 @@ export default function Pedido() {
                                 </p>
                                 <div className="mt-1 flex text-sm text-slate-400">
                                   <p className="mr-4">Qtd: {item.quantidade}</p>
-                                  <p>Valor: {formatarPreco(item.preco_unitario * item.quantidade)}</p>
+                                  <p>Valor: {formatarPreco((item.preco_unitario || 0) * item.quantidade)}</p>
                                 </div>
                                 {item.observacoes && (
                                   <p className="mt-1 text-xs text-slate-500">
@@ -754,13 +1273,25 @@ export default function Pedido() {
               {/* Rodapé do modal com botões */}
               <div className="border-t border-slate-700 px-4 py-3 sm:flex sm:flex-row-reverse">
                 {modalMode !== 'visualizar' && (
-                  <button
-                    type="submit"
-                    form="pedido-form"
-                    className="w-full inline-flex justify-center rounded-md border border-transparent bg-amber-600 px-4 py-2.5 text-base font-medium text-white shadow-sm hover:bg-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-slate-900 sm:ml-3 sm:w-auto sm:text-sm"
-                  >
-                    {modalMode === 'criar' ? 'Criar Pedido' : 'Salvar Alterações'}
-                  </button>
+                  <>
+                    <button
+                      type="submit"
+                      form="pedido-form"
+                      className="w-full inline-flex justify-center rounded-md border border-transparent bg-amber-600 px-4 py-2.5 text-base font-medium text-white shadow-sm hover:bg-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-slate-900 sm:ml-3 sm:w-auto sm:text-sm"
+                    >
+                      {modalMode === 'criar' ? 'Criar Pedido' : 'Salvar Alterações'}
+                    </button>
+                    
+                    {modalMode === 'editar' && (
+                      <button
+                        type="button"
+                        onClick={handleFinalizarEdicao}
+                        className="w-full inline-flex justify-center rounded-md border border-transparent bg-green-600 px-4 py-2.5 text-base font-medium text-white shadow-sm hover:bg-green-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:ring-offset-slate-900 sm:ml-3 sm:w-auto sm:text-sm"
+                      >
+                        Finalizar Edição
+                      </button>
+                    )}
+                  </>
                 )}
 
                 {modalMode === 'visualizar' && currentPedido._id && (
@@ -937,3 +1468,11 @@ export default function Pedido() {
     </div>
   );
 }
+
+// Função para renderizar a lista de pedidos (separada para poder ser chamada dentro do bloco de sucesso)
+const Pedidos = () => (
+  <div className="rounded-lg border border-slate-800 bg-slate-900 p-6 shadow-md">
+    {/* Conteúdo original aqui */}
+    {/* ... */}
+  </div>
+);

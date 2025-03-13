@@ -1,6 +1,14 @@
 import axios from 'axios';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+// Configurar o axios com timeout para evitar chamadas travadas
+const api = axios.create({
+  baseURL: API_URL,
+  timeout: 15000, // 15 segundos
+  headers: {
+    'Content-Type': 'application/json',
+  }
+});
 
 export enum StatusPedido {
   ABERTO = "ABERTO",
@@ -11,104 +19,247 @@ export enum StatusPedido {
 
 // Ajustado para corresponder ao backend
 export interface ItemPedido {
-  produto_id: string;  // Alterado de 'item' para 'produto_id'
+  id?: string;  // Pode ser opcional na criação
+  pedido_id?: string;  // Pode ser opcional na criação
+  produto_id: string;
   quantidade: number;
-  observacoes?: string;  // Adicionado campo de observações
+  preco_unitario?: number;  // Pode ser calculado pelo backend
+  observacoes?: string;
+  criado_em?: Date;  // Definido pelo backend
+  produto?: {
+    nome: string;
+    preco: number;
+  };
 }
 
 export interface Pedido {
-  _id: string;
-  mesa_id: string;  // Alterado de 'mesa' para 'mesa_id'
+  id: string;  // Alterado de '_id' para 'id' para corresponder ao que o backend retorna
+  mesa_id: string;
   itens: ItemPedido[];
   status: StatusPedido;
-  observacao_geral?: string;  // Alterado de 'observacoes' para 'observacao_geral'
+  observacao_geral?: string;
   valor_total: number;
   criado_em: Date;
-  manual?: boolean;  // Adicionado campo manual
+  manual?: boolean;
 }
 
 export const getPedidos = async () => {
-  const response = await axios.get(`${API_URL}/pedidos`);
-  return response.data.pedidos;  // Ajustado para pegar pedidos do objeto retornado
+  try {
+    console.log(`Enviando requisição GET para: ${API_URL}/pedidos`);
+    const response = await api.get(`/pedidos`);
+    console.log('Resposta da requisição GET:', response.data);
+    return response.data.pedidos;
+  } catch (error) {
+    console.error('Erro na requisição GET pedidos:', error);
+    throw error;
+  }
 };
 
 export const getPedidoById = async (id: string) => {
-  const response = await axios.get(`${API_URL}/pedidos/${id}`);
-  return response.data;
+  try {
+    console.log(`Enviando requisição GET para: ${API_URL}/pedidos/${id}`);
+    const response = await api.get(`/pedidos/${id}`);
+    console.log('Resposta da requisição GET:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Erro na requisição GET pedido por ID:', error);
+    throw error;
+  }
 };
 
 export const createPedido = async (pedidoData: {
-  mesa_id: string;  // Alterado de 'mesa' para 'mesa_id'
+  mesa_id: string;
   itens: ItemPedido[];
-  observacao_geral?: string;  // Alterado de 'observacoes' para 'observacao_geral'
-  manual?: boolean;  // Adicionado campo manual
+  observacao_geral?: string;
+  manual?: boolean;
 }) => {
-  const response = await axios.post(`${API_URL}/pedidos`, pedidoData);
-  return response.data;
+  try {
+    console.log(`Enviando requisição POST para: ${API_URL}/pedidos`, pedidoData);
+    const response = await api.post(`/pedidos`, pedidoData);
+    console.log('Resposta da requisição POST:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Erro na requisição POST para criar pedido:', error);
+    throw error;
+  }
 };
 
 export const updatePedido = async (
   id: string,
   pedidoData: {
     status?: StatusPedido;
-    observacao_geral?: string;  // Alterado de 'observacoes' para 'observacao_geral'
+    observacao_geral?: string;
   }
 ) => {
-  const response = await axios.put(`${API_URL}/pedidos/${id}`, pedidoData);
-  return response.data;
+  try {
+    if (!id) {
+      console.error('ID do pedido não fornecido para atualização');
+      throw new Error('ID do pedido é obrigatório para atualização');
+    }
+    
+    console.log(`Enviando requisição PUT para: ${API_URL}/pedidos/${id}`);
+    console.log('Tipo do ID:', typeof id);
+    console.log('Valor do ID:', id);
+    console.log('Dados enviados:', JSON.stringify(pedidoData));
+    console.log('URL completa:', `${API_URL}/pedidos/${id}`);
+    
+    const response = await api.put(`/pedidos/${id}`, pedidoData);
+    console.log('Resposta da requisição PUT:', response.data);
+    return response.data;
+  } catch (error: unknown) {
+    console.error('Erro na requisição PUT:');
+    
+    if (error instanceof Error) {
+      console.error('Mensagem:', error.message);
+    }
+    
+    // Verificar se é um erro do Axios
+    if (axios.isAxiosError(error) && error.response) {
+      console.error('Status:', error.response.status);
+      console.error('Dados:', error.response.data);
+      console.error('Headers:', error.response.headers);
+    }
+    
+    throw error; // Re-throw para tratamento no componente
+  }
 };
 
 export const deletePedido = async (id: string) => {
-  const response = await axios.delete(`${API_URL}/pedidos/${id}`);
-  return response.data;
-};
-
-export const adicionarItemAoPedido = async (
-  pedidoId: string,
-  itemData: {
-    produto_id: string;  // Alterado de 'item' para 'produto_id'
-    quantidade: number;
-    observacoes?: string;  // Adicionado campo de observações
+  try {
+    console.log(`Enviando requisição DELETE para: ${API_URL}/pedidos/${id}`);
+    const response = await api.delete(`/pedidos/${id}`);
+    console.log('Resposta da requisição DELETE:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Erro na requisição DELETE:', error);
+    throw error; // Re-throw para tratamento no componente
   }
-) => {
-  const response = await axios.post(`${API_URL}/pedidos/${pedidoId}/itens`, itemData);
-  return response.data;
 };
 
-export const removerItemDoPedido = async (
-  pedidoId: string,
-  itemId: string
-) => {
-  const response = await axios.delete(`${API_URL}/pedidos/${pedidoId}/itens/${itemId}`);
-  return response.data;
-};
-
-export const atualizarQuantidadeItem = async (
-  pedidoId: string,
-  itemId: string,
-  itemData: {
-    quantidade: number;
-    observacoes?: string;  // Adicionado campo de observações
+export const adicionarItemAoPedido = async (pedidoId: string, item: Omit<ItemPedido, 'id' | 'pedido_id' | 'preco_unitario' | 'criado_em'>): Promise<Pedido> => {
+  try {
+    console.log(`Enviando requisição POST para: ${API_URL}/pedidos/${pedidoId}/itens`, item);
+    const response = await api.post(`/pedidos/${pedidoId}/itens`, item);
+    console.log('Resposta da requisição POST:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Erro na requisição POST:', error);
+    throw error;
   }
-) => {
-  const response = await axios.put(`${API_URL}/pedidos/${pedidoId}/itens/${itemId}`, itemData);
-  return response.data;
+};
+
+export const atualizarItemDoPedido = async (pedidoId: string, itemId: string, dadosAtualizacao: { quantidade?: number, observacoes?: string }): Promise<Pedido> => {
+  try {
+    if (!pedidoId) {
+      console.error('ID do pedido não fornecido para atualização de item');
+      throw new Error('ID do pedido é obrigatório para atualização de item');
+    }
+    
+    if (!itemId) {
+      console.error('ID do item não fornecido para atualização');
+      throw new Error('ID do item é obrigatório para atualização');
+    }
+    
+    console.log(`Enviando requisição PUT para: ${API_URL}/pedidos/${pedidoId}/itens/${itemId}`);
+    console.log('Pedido ID:', pedidoId, 'Tipo:', typeof pedidoId);
+    console.log('Item ID:', itemId, 'Tipo:', typeof itemId);
+    console.log('Dados enviados:', JSON.stringify(dadosAtualizacao));
+    console.log('URL completa:', `${API_URL}/pedidos/${pedidoId}/itens/${itemId}`);
+    
+    const response = await api.put(`/pedidos/${pedidoId}/itens/${itemId}`, dadosAtualizacao);
+    console.log('Resposta da requisição PUT para atualizar item:', response.data);
+    return response.data;
+  } catch (error: unknown) {
+    console.error('Erro na requisição PUT para atualizar item:');
+    
+    if (error instanceof Error) {
+      console.error('Mensagem:', error.message);
+    }
+    
+    // Verificar se é um erro do Axios
+    if (axios.isAxiosError(error) && error.response) {
+      console.error('Status:', error.response.status);
+      console.error('Dados:', error.response.data);
+      console.error('Headers:', error.response.headers);
+    }
+    
+    throw error;
+  }
+};
+
+export const removerItemDoPedido = async (pedidoId: string, itemId: string): Promise<Pedido> => {
+  try {
+    if (!pedidoId) {
+      console.error('ID do pedido não fornecido para remoção de item');
+      throw new Error('ID do pedido é obrigatório para remoção de item');
+    }
+    
+    if (!itemId) {
+      console.error('ID do item não fornecido para remoção');
+      throw new Error('ID do item é obrigatório para remoção');
+    }
+    
+    console.log(`Enviando requisição DELETE para: ${API_URL}/pedidos/${pedidoId}/itens/${itemId}`);
+    console.log('Pedido ID:', pedidoId, 'Tipo:', typeof pedidoId);
+    console.log('Item ID:', itemId, 'Tipo:', typeof itemId);
+    console.log('URL completa:', `${API_URL}/pedidos/${pedidoId}/itens/${itemId}`);
+    
+    const response = await api.delete(`/pedidos/${pedidoId}/itens/${itemId}`);
+    console.log('Resposta da requisição DELETE para remover item:', response.data);
+    return response.data;
+  } catch (error: unknown) {
+    console.error('Erro na requisição DELETE para remover item:');
+    
+    if (error instanceof Error) {
+      console.error('Mensagem:', error.message);
+    }
+    
+    // Verificar se é um erro do Axios
+    if (axios.isAxiosError(error) && error.response) {
+      console.error('Status:', error.response.status);
+      console.error('Dados:', error.response.data);
+      console.error('Headers:', error.response.headers);
+    }
+    
+    throw error;
+  }
 };
 
 export const atualizarStatusPedido = async (
   pedidoId: string,
   status: StatusPedido
 ) => {
-  const response = await axios.put(`${API_URL}/pedidos/${pedidoId}`, { status });
-  return response.data;
+  try {
+    console.log(`Enviando requisição PUT para: ${API_URL}/pedidos/${pedidoId} com status:`, status);
+    const response = await api.put(`/pedidos/${pedidoId}`, { status });
+    console.log('Resposta da requisição PUT status:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Erro na requisição PUT para atualizar status:', error);
+    throw error;
+  }
 };
 
 export const getPedidosPorMesa = async (mesaId: string) => {
-  const response = await axios.get(`${API_URL}/pedidos?mesa_id=${mesaId}`);
-  return response.data.pedidos;  // Ajustado para pegar pedidos do objeto retornado
+  try {
+    console.log(`Enviando requisição GET para: ${API_URL}/pedidos?mesa_id=${mesaId}`);
+    const response = await api.get(`/pedidos?mesa_id=${mesaId}`);
+    console.log('Resposta da requisição GET por mesa:', response.data);
+    return response.data.pedidos;
+  } catch (error) {
+    console.error('Erro na requisição GET por mesa:', error);
+    throw error;
+  }
 };
 
 export const getPedidosPorStatus = async (status: StatusPedido) => {
-  const response = await axios.get(`${API_URL}/pedidos?status=${status}`);
-  return response.data.pedidos;  // Ajustado para pegar pedidos do objeto retornado
+  try {
+    console.log(`Enviando requisição GET para: ${API_URL}/pedidos?status=${status}`);
+    const response = await api.get(`/pedidos?status=${status}`);
+    console.log('Resposta da requisição GET por status:', response.data);
+    return response.data.pedidos;
+  } catch (error) {
+    console.error('Erro na requisição GET por status:', error);
+    throw error;
+  }
 };
