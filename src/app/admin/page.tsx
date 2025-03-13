@@ -6,6 +6,7 @@ import { logout, getUserInfo } from '@/lib/auth';
 
 import Cardapio from './components/Cardapio';
 import Mesa from './components/Mesa';
+import Pedido from './components/Pedido';
 
 
 interface UserData {
@@ -301,6 +302,7 @@ export default function AdminPage() {
 
           {activeTab === 'cardapio' && <Cardapio />}    
           {activeTab === 'mesas' && <Mesa />}
+          {activeTab === 'pedidos' && <Pedido />}
         </div>
       </main>
     

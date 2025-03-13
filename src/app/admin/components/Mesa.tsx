@@ -10,6 +10,12 @@ import {
     MesaStatus
 } from '@/lib/mesa';
 import { getTiposCardapio, TipoCardapio } from '@/lib/cardapio';
+import axios from 'axios';
+
+// Definindo uma interface estendida para uso interno no componente
+interface MesaWithLegacyAtivo extends MesaType {
+    ativo?: boolean; // Campo mantido para compatibilidade com o código existente
+}
 
 export default function Mesa() {
     const [mesas, setMesas] = useState<MesaType[]>([]);
@@ -22,12 +28,12 @@ export default function Mesa() {
 
     const [showModal, setShowModal] = useState(false);
     const [modalMode, setModalMode] = useState<'criar' | 'editar'>('criar');
-    const [currentMesa, setCurrentMesa] = useState<MesaType>({ 
+    const [currentMesa, setCurrentMesa] = useState<MesaWithLegacyAtivo>({ 
         id: '',
         status: MesaStatus.LIVRE,
         tipo_cardapio_id: '',
         qr_code: '',
-        ativo: true
+        ativa: true
     });
 
     // Status das mesas
@@ -124,7 +130,7 @@ export default function Mesa() {
             status: MesaStatus.LIVRE,
             tipo_cardapio_id: '',
             qr_code: '',
-            ativo: true
+            ativa: true
         });
         setModalMode('criar');
         setShowModal(true);
@@ -145,29 +151,120 @@ export default function Mesa() {
         setCurrentMesa(prev => ({ ...prev, [name]: value }));
     };
 
+    const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { checked } = e.target;
+        setCurrentMesa(prev => ({ ...prev, ativa: checked }));
+    };
+
     const handleSaveMesa = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
+            // Log detalhado dos dados que serão enviados
+            console.log('===== INÍCIO DA CRIAÇÃO/EDIÇÃO DE MESA =====');
+            console.log('Modo:', modalMode);
+            console.log('Dados da mesa a serem enviados:', currentMesa);
+            console.log('URL da API:', process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000');
+            
+            // Verificar se todos os campos obrigatórios estão preenchidos
+            if (!currentMesa.id) {
+                console.error('ID da mesa não informado');
+                setError('ID da mesa é obrigatório');
+                return;
+            }
+            
+            if (!currentMesa.tipo_cardapio_id) {
+                console.error('Tipo de cardápio não selecionado');
+                setError('Tipo de cardápio é obrigatório');
+                return;
+            }
+            
+            if (!currentMesa.qr_code) {
+                console.error('QR Code não informado');
+                setError('QR Code é obrigatório');
+                return;
+            }
+            
+            // Verificar se o campo ativa está definido
+            if (currentMesa.ativa === undefined) {
+                console.warn('Campo ativa não definido, definindo como true');
+                setCurrentMesa(prev => ({ ...prev, ativa: true }));
+            }
+            
             if (modalMode === 'criar') {
-                const novaMesa = await createMesa(currentMesa);
-                setMesas(prev => [...prev, novaMesa]);
-                setSuccess(`Mesa #${novaMesa.id} criada com sucesso!`);
+                console.log('Enviando requisição POST para criar mesa');
+                console.log('Dados formatados para envio:', JSON.stringify(currentMesa));
+                
+                try {
+                    const novaMesa = await createMesa(currentMesa);
+                    console.log('Resposta da API após criação:', novaMesa);
+                    setMesas(prev => [...prev, novaMesa]);
+                    setSuccess(`Mesa #${novaMesa.id} criada com sucesso!`);
+                } catch (err: unknown) {
+                    console.error('Erro detalhado ao criar mesa:', err);
+                    
+                    if (axios.isAxiosError(err) && err.response) {
+                        console.error('Status do erro:', err.response.status);
+                        console.error('Dados do erro:', err.response.data);
+                        console.error('Headers:', err.response.headers);
+                        
+                        // Mensagem de erro mais específica
+                        if (err.response.status === 422) {
+                            setError(`Erro de validação: ${JSON.stringify(err.response.data)}`);
+                        } else {
+                            const errorMessage = err.response.data.detail || (err instanceof Error ? err.message : 'Erro desconhecido');
+                            setError(`Falha ao criar a mesa: ${errorMessage}`);
+                        }
+                    } else {
+                        const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
+                        setError(`Falha ao criar a mesa: ${errorMessage}`);
+                    }
+                    return;
+                }
             } else {
                 if (currentMesa.id) {
-                    const mesaAtualizada = await updateMesa(currentMesa.id, currentMesa);
-                    setMesas(prev => prev.map(mesa => mesa.id === mesaAtualizada.id ? mesaAtualizada : mesa));
-                    setSuccess(`Mesa #${mesaAtualizada.id} atualizada com sucesso!`);
+                    console.log('Enviando requisição PUT para atualizar mesa');
+                    console.log('Dados formatados para envio:', JSON.stringify(currentMesa));
+                    
+                    try {
+                        const mesaAtualizada = await updateMesa(currentMesa.id, currentMesa);
+                        console.log('Resposta da API após atualização:', mesaAtualizada);
+                        setMesas(prev => prev.map(mesa => mesa.id === mesaAtualizada.id ? mesaAtualizada : mesa));
+                        setSuccess(`Mesa #${mesaAtualizada.id} atualizada com sucesso!`);
+                    } catch (err: unknown) {
+                        console.error('Erro detalhado ao atualizar mesa:', err);
+                        
+                        if (axios.isAxiosError(err) && err.response) {
+                            console.error('Status do erro:', err.response.status);
+                            console.error('Dados do erro:', err.response.data);
+                            console.error('Headers:', err.response.headers);
+                            
+                            // Mensagem de erro mais específica
+                            if (err.response.status === 422) {
+                                setError(`Erro de validação: ${JSON.stringify(err.response.data)}`);
+                            } else {
+                                const errorMessage = err.response.data.detail || (err instanceof Error ? err.message : 'Erro desconhecido');
+                                setError(`Falha ao atualizar a mesa: ${errorMessage}`);
+                            }
+                        } else {
+                            const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
+                            setError(`Falha ao atualizar a mesa: ${errorMessage}`);
+                        }
+                        return;
+                    }
                 }
             }
+            
+            console.log('===== FIM DA CRIAÇÃO/EDIÇÃO DE MESA =====');
             handleCloseModal();
             
             // Limpar a mensagem de sucesso após 3 segundos
             setTimeout(() => {
                 setSuccess(null);
             }, 3000);
-        } catch (err) {
-            console.error('Erro ao salvar mesa:', err);
-            setError('Falha ao salvar a mesa. Tente novamente mais tarde.');
+        } catch (err: unknown) {
+            console.error('Erro geral ao salvar mesa:', err);
+            const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
+            setError(`Falha ao salvar a mesa: ${errorMessage}`);
         }
     };
 
@@ -399,7 +496,7 @@ export default function Mesa() {
                                         </p>
                                     )}
                                     <p className="mb-2 text-sm text-slate-400">
-                                        Ativa: <span className="font-medium text-white">{mesa.ativo ? 'Sim' : 'Não'}</span>
+                                        Ativa: <span className="font-medium text-white">{mesa.ativa ? 'Sim' : 'Não'}</span>
                                     </p>
                                     
                                     <div className="mt-4 flex justify-end space-x-2">
@@ -483,8 +580,8 @@ export default function Mesa() {
                                                 type="checkbox"
                                                 id="ativo"
                                                 name="ativo"
-                                                checked={currentMesa.ativo ?? true} // Default true se undefined
-                                                onChange={(e) => setCurrentMesa(prev => ({ ...prev, ativa: e.target.checked }))}
+                                                checked={currentMesa.ativa ?? true} // Default true se undefined
+                                                onChange={handleCheckboxChange}
                                                 className="h-4 w-4 rounded border-slate-700 bg-slate-800 text-amber-600 focus:ring-amber-500"
                                             />
                                             <label htmlFor="ativo" className="ml-2 block text-sm font-medium text-slate-400">
