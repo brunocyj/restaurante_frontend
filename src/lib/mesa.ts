@@ -18,14 +18,7 @@ export interface Mesa {
 
 export const createMesa = async (data: Mesa): Promise<Mesa> => {
     try {
-        console.log('Enviando requisição POST para: /mesas/');
-        console.log('Dados enviados:', JSON.stringify(data));
-        console.log('Headers:', {
-            'Content-Type': 'application/json',
-        });
-        
         const response = await api.post('/mesas/', data);
-        console.log('Resposta da API:', response.data);
         return response.data;
     } catch (error: unknown) {
         console.error('Erro na requisição POST para criar mesa:');

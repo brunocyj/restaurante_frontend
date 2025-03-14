@@ -1,24 +1,11 @@
 import axios from 'axios';
 
-// URL base da API - usando diferentes configurações dependendo do ambiente
-export const API_URL = (() => {
-  // Em produção no Railway, usar o endereço interno
-  if (process.env.NODE_ENV === 'production') {
-    // Verificar se estamos no Railway (ambiente de produção)
-    if (process.env.RAILWAY_ENVIRONMENT === 'production') {
-      return 'http://restaurante_backend'; // Endereço interno do Railway
-    }
-    // Caso esteja em produção mas não no Railway (ex: Vercel)
-    return '/api'; // Usar o proxy configurado no next.config.js
-  }
-  // Em desenvolvimento local
-  return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-})();
+// URL base da API - simplificada
+export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 // Log para depuração
 console.log(`Ambiente: ${process.env.NODE_ENV}`);
 console.log(`URL da API configurada: ${API_URL}`);
-console.log(`RAILWAY_ENVIRONMENT: ${process.env.RAILWAY_ENVIRONMENT || 'não definido'}`);
 
 // Instância do Axios com configurações padrão
 const api = axios.create({
@@ -83,34 +70,6 @@ api.interceptors.response.use(
     } else if (error.request) {
       // A requisição foi feita mas não houve resposta
       console.error('Sem resposta do servidor:', error.request);
-      
-      // Tentar novamente com endereço alternativo se estiver em produção
-      if (process.env.NODE_ENV === 'production' && error.config && !error.config._retry) {
-        console.log('Tentando novamente com endereço alternativo...');
-        error.config._retry = true;
-        
-        // Criar uma nova instância do axios para esta requisição específica
-        const retryInstance = axios.create({
-          timeout: 15000,
-          headers: error.config.headers
-        });
-        
-        // Se falhou com o endereço interno, tentar com o endereço público
-        if (API_URL === 'http://restaurante_backend') {
-          error.config.baseURL = 'https://restaurantebackend-production.up.railway.app';
-        } 
-        // Se falhou com o proxy, tentar diretamente
-        else if (API_URL === '/api') {
-          error.config.baseURL = 'https://restaurantebackend-production.up.railway.app';
-          // Remover a parte '/api' da URL se estiver presente
-          if (error.config.url && error.config.url.startsWith('/api/')) {
-            error.config.url = error.config.url.substring(5);
-          }
-        }
-        
-        console.log(`Tentando novamente com: ${error.config.baseURL}${error.config.url}`);
-        return retryInstance(error.config);
-      }
     }
     
     return Promise.reject(error);
