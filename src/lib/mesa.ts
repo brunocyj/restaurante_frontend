@@ -1,5 +1,5 @@
 import axios from 'axios';
-import apiInstance, { API_URL } from './api';
+import api from './api';
 
 export enum MesaStatus {
     LIVRE = "LIVRE",
@@ -16,20 +16,13 @@ export interface Mesa {
     ativa: boolean; // Campo correto esperado pelo backend
 }
 
-// Usar a instância centralizada do axios
-const api = apiInstance;
-
 export const createMesa = async (data: Mesa): Promise<Mesa> => {
     try {
-        console.log(`Enviando requisição POST para: ${API_URL}/mesas/`);
+        console.log('Enviando requisição POST para: /mesas/');
         console.log('Dados enviados:', JSON.stringify(data));
         console.log('Headers:', {
             'Content-Type': 'application/json',
         });
-        
-        // Mostrar a URL completa para debug 
-        const url = `${API_URL}/mesas/`;
-        console.log('URL completa:', url);
         
         const response = await api.post('/mesas/', data);
         console.log('Resposta da API:', response.data);
