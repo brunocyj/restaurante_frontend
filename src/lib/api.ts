@@ -27,12 +27,13 @@ api.interceptors.request.use(
       }
     }
     
-    // Log para debug
-    console.log(`Fazendo requisição para: ${config.baseURL}${config.url}`);
+    // Log para debug - com informações mais detalhadas
+    console.log(`[API Request] URL: ${config.baseURL}${config.url}, Method: ${config.method?.toUpperCase()}`);
     
     return config;
   },
   (error) => {
+    console.error('[API Request Error]', error);
     return Promise.reject(error);
   }
 );

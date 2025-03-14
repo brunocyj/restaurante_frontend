@@ -163,7 +163,6 @@ export default function Mesa() {
             console.log('===== INÍCIO DA CRIAÇÃO/EDIÇÃO DE MESA =====');
             console.log('Modo:', modalMode);
             console.log('Dados da mesa a serem enviados:', currentMesa);
-            console.log('URL da API:', process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000');
             
             // Verificar se todos os campos obrigatórios estão preenchidos
             if (!currentMesa.id) {

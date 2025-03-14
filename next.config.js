@@ -8,7 +8,7 @@ const nextConfig = {
       {
         source: '/api/:path*',
         destination: 'https://restaurantebackend-production.up.railway.app/:path*',
-      },
+      }
     ];
   },
   async headers() {

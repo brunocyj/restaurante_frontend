@@ -1,9 +1,5 @@
 import axios from 'axios';
-import apiInstance from './api';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-// Usar a instância centralizada do axios
-const api = apiInstance;
+import api from './api';
 
 export enum StatusPedido {
   ABERTO = "ABERTO",
@@ -40,8 +36,8 @@ export interface Pedido {
 
 export const getPedidos = async () => {
   try {
-    console.log(`Enviando requisição GET para: ${API_URL}/pedidos`);
-    const response = await api.get(`/pedidos`);
+    console.log('Enviando requisição GET para: /pedidos');
+    const response = await api.get('/pedidos');
     console.log('Resposta da requisição GET:', response.data);
     return response.data.pedidos;
   } catch (error) {
@@ -52,7 +48,7 @@ export const getPedidos = async () => {
 
 export const getPedidoById = async (id: string) => {
   try {
-    console.log(`Enviando requisição GET para: ${API_URL}/pedidos/${id}`);
+    console.log(`Enviando requisição GET para: /pedidos/${id}`);
     const response = await api.get(`/pedidos/${id}`);
     console.log('Resposta da requisição GET:', response.data);
     return response.data;
@@ -69,8 +65,8 @@ export const createPedido = async (pedidoData: {
   manual?: boolean;
 }) => {
   try {
-    console.log(`Enviando requisição POST para: ${API_URL}/pedidos`, pedidoData);
-    const response = await api.post(`/pedidos`, pedidoData);
+    console.log('Enviando requisição POST para: /pedidos', pedidoData);
+    const response = await api.post('/pedidos', pedidoData);
     console.log('Resposta da requisição POST:', response.data);
     return response.data;
   } catch (error) {
@@ -92,11 +88,10 @@ export const updatePedido = async (
       throw new Error('ID do pedido é obrigatório para atualização');
     }
     
-    console.log(`Enviando requisição PUT para: ${API_URL}/pedidos/${id}`);
+    console.log(`Enviando requisição PUT para: /pedidos/${id}`);
     console.log('Tipo do ID:', typeof id);
     console.log('Valor do ID:', id);
     console.log('Dados enviados:', JSON.stringify(pedidoData));
-    console.log('URL completa:', `${API_URL}/pedidos/${id}`);
     
     const response = await api.put(`/pedidos/${id}`, pedidoData);
     console.log('Resposta da requisição PUT:', response.data);
@@ -121,7 +116,7 @@ export const updatePedido = async (
 
 export const deletePedido = async (id: string) => {
   try {
-    console.log(`Enviando requisição DELETE para: ${API_URL}/pedidos/${id}`);
+    console.log(`Enviando requisição DELETE para: /pedidos/${id}`);
     const response = await api.delete(`/pedidos/${id}`);
     console.log('Resposta da requisição DELETE:', response.data);
     return response.data;
@@ -133,7 +128,7 @@ export const deletePedido = async (id: string) => {
 
 export const adicionarItemAoPedido = async (pedidoId: string, item: Omit<ItemPedido, 'id' | 'pedido_id' | 'preco_unitario' | 'criado_em'>): Promise<Pedido> => {
   try {
-    console.log(`Enviando requisição POST para: ${API_URL}/pedidos/${pedidoId}/itens`, item);
+    console.log(`Enviando requisição POST para: /pedidos/${pedidoId}/itens`, item);
     const response = await api.post(`/pedidos/${pedidoId}/itens`, item);
     console.log('Resposta da requisição POST:', response.data);
     return response.data;
@@ -155,11 +150,10 @@ export const atualizarItemDoPedido = async (pedidoId: string, itemId: string, da
       throw new Error('ID do item é obrigatório para atualização');
     }
     
-    console.log(`Enviando requisição PUT para: ${API_URL}/pedidos/${pedidoId}/itens/${itemId}`);
+    console.log(`Enviando requisição PUT para: /pedidos/${pedidoId}/itens/${itemId}`);
     console.log('Pedido ID:', pedidoId, 'Tipo:', typeof pedidoId);
     console.log('Item ID:', itemId, 'Tipo:', typeof itemId);
     console.log('Dados enviados:', JSON.stringify(dadosAtualizacao));
-    console.log('URL completa:', `${API_URL}/pedidos/${pedidoId}/itens/${itemId}`);
     
     const response = await api.put(`/pedidos/${pedidoId}/itens/${itemId}`, dadosAtualizacao);
     console.log('Resposta da requisição PUT para atualizar item:', response.data);
@@ -194,10 +188,9 @@ export const removerItemDoPedido = async (pedidoId: string, itemId: string): Pro
       throw new Error('ID do item é obrigatório para remoção');
     }
     
-    console.log(`Enviando requisição DELETE para: ${API_URL}/pedidos/${pedidoId}/itens/${itemId}`);
+    console.log(`Enviando requisição DELETE para: /pedidos/${pedidoId}/itens/${itemId}`);
     console.log('Pedido ID:', pedidoId, 'Tipo:', typeof pedidoId);
     console.log('Item ID:', itemId, 'Tipo:', typeof itemId);
-    console.log('URL completa:', `${API_URL}/pedidos/${pedidoId}/itens/${itemId}`);
     
     const response = await api.delete(`/pedidos/${pedidoId}/itens/${itemId}`);
     console.log('Resposta da requisição DELETE para remover item:', response.data);
@@ -225,7 +218,7 @@ export const atualizarStatusPedido = async (
   status: StatusPedido
 ) => {
   try {
-    console.log(`Enviando requisição PUT para: ${API_URL}/pedidos/${pedidoId} com status:`, status);
+    console.log(`Enviando requisição PUT para: /pedidos/${pedidoId} com status:`, status);
     const response = await api.put(`/pedidos/${pedidoId}`, { status });
     console.log('Resposta da requisição PUT status:', response.data);
     return response.data;
@@ -237,7 +230,7 @@ export const atualizarStatusPedido = async (
 
 export const getPedidosPorMesa = async (mesaId: string) => {
   try {
-    console.log(`Enviando requisição GET para: ${API_URL}/pedidos?mesa_id=${mesaId}`);
+    console.log(`Enviando requisição GET para: /pedidos?mesa_id=${mesaId}`);
     const response = await api.get(`/pedidos?mesa_id=${mesaId}`);
     console.log('Resposta da requisição GET por mesa:', response.data);
     return response.data.pedidos;
@@ -249,7 +242,7 @@ export const getPedidosPorMesa = async (mesaId: string) => {
 
 export const getPedidosPorStatus = async (status: StatusPedido) => {
   try {
-    console.log(`Enviando requisição GET para: ${API_URL}/pedidos?status=${status}`);
+    console.log(`Enviando requisição GET para: /pedidos?status=${status}`);
     const response = await api.get(`/pedidos?status=${status}`);
     console.log('Resposta da requisição GET por status:', response.data);
     return response.data.pedidos;

@@ -1,5 +1,5 @@
 import axios from 'axios';
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+import api from './api';
 
 interface LoginCredentials {
     username: string;
@@ -23,8 +23,8 @@ interface UserInfo {
  */
 export async function login(credentials: LoginCredentials): Promise<void> {
     try {
-      const response = await axios.post<AuthTokens>(
-        `${API_URL}/auth/login`,
+      const response = await api.post<AuthTokens>(
+        '/auth/login',
         new URLSearchParams({
           username: credentials.username,
           password: credentials.password,
@@ -107,8 +107,8 @@ export async function login(credentials: LoginCredentials): Promise<void> {
       }
       
       // Chamar o endpoint correto conforme definido no backend
-      const response = await axios.post<AuthTokens>(
-        `${API_URL}/auth/refresh-token`,
+      const response = await api.post<AuthTokens>(
+        '/auth/refresh-token',
         { refresh_token: refreshTokenValue },
         {
           headers: {
@@ -147,7 +147,7 @@ export async function login(credentials: LoginCredentials): Promise<void> {
         return null;
       }
       
-      const response = await axios.get<UserInfo>(`${API_URL}/auth/me`, {
+      const response = await api.get<UserInfo>('/auth/me', {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -181,8 +181,8 @@ export async function login(credentials: LoginCredentials): Promise<void> {
         return false;
       }
       
-      await axios.post(
-        `${API_URL}/auth/logout`,
+      await api.post(
+        '/auth/logout',
         {},
         {
           headers: {
