@@ -4,11 +4,12 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
   async rewrites() {
-    // Configurar rewrites para redirecionar as requisições do cliente para o backend
     return [
       {
         source: '/api/:path*',
-        destination: 'https://restaurantebackend-production.up.railway.app/:path*',
+        destination: process.env.INTERNAL_API_URL 
+          ? `${process.env.INTERNAL_API_URL}/:path*` 
+          : 'https://restaurantebackend-production.up.railway.app/:path*',
       }
     ];
   },
