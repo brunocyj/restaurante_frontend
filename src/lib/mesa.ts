@@ -32,7 +32,7 @@ export const createMesa = async (data: Mesa): Promise<Mesa> => {
             'Content-Type': 'application/json',
         });
         
-        // Mostrar a URL completa para debug
+        // Mostrar a URL completa para debug 
         const url = `${API_URL}/mesas/`;
         console.log('URL completa:', url);
         
