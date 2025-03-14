@@ -9,8 +9,8 @@ const nextConfig = {
         source: '/api/:path*',
         destination: process.env.INTERNAL_API_URL 
           ? `${process.env.INTERNAL_API_URL}/:path*` 
-          : 'https://restaurantebackend-production.up.railway.app/:path*',
-      }
+          : 'http://restaurante_backend.railway.internal:8000/:path*', // Use a URL interna como fallback
+      },
     ];
   },
   async headers() {
@@ -34,6 +34,6 @@ const nextConfig = {
       },
     ];
   },
-}
+};
 
-module.exports = nextConfig 
+module.exports = nextConfig;
