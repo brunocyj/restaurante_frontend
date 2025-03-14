@@ -1,14 +1,9 @@
 import axios from 'axios';
+import apiInstance from './api';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-// Configurar o axios com timeout para evitar chamadas travadas
-const api = axios.create({
-  baseURL: API_URL,
-  timeout: 15000, // 15 segundos
-  headers: {
-    'Content-Type': 'application/json',
-  }
-});
+// Usar a instância centralizada do axios
+const api = apiInstance;
 
 export enum StatusPedido {
   ABERTO = "ABERTO",

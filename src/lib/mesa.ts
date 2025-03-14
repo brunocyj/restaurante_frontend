@@ -1,6 +1,5 @@
 import axios from 'axios';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+import apiInstance, { API_URL } from './api';
 
 export enum MesaStatus {
     LIVRE = "LIVRE",
@@ -17,12 +16,8 @@ export interface Mesa {
     ativa: boolean; // Campo correto esperado pelo backend
 }
 
-const api = axios.create({
-    baseURL: API_URL,
-    headers: {
-        'Content-Type': 'application/json',
-    },
-});
+// Usar a instância centralizada do axios
+const api = apiInstance;
 
 export const createMesa = async (data: Mesa): Promise<Mesa> => {
     try {
