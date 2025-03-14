@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 
 // URL do backend para comunicação interna no Railway
 const BACKEND_URL = process.env.INTERNAL_API_URL || 'http://restaurante_backend:8000';
@@ -32,13 +32,16 @@ export async function GET(
     
     // Retornar a resposta
     return NextResponse.json(response.data);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error(`[API Proxy] Erro ao redirecionar GET:`, error);
+    
+    // Tratar o erro como AxiosError ou erro genérico
+    const axiosError = error as AxiosError;
     
     // Retornar o erro com o status correto
     return NextResponse.json(
-      { error: error.message },
-      { status: error.response?.status || 500 }
+      { error: axiosError.message },
+      { status: axiosError.response?.status || 500 }
     );
   }
 }
@@ -69,13 +72,16 @@ export async function POST(
     
     // Retornar a resposta
     return NextResponse.json(response.data);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error(`[API Proxy] Erro ao redirecionar POST:`, error);
+    
+    // Tratar o erro como AxiosError ou erro genérico
+    const axiosError = error as AxiosError;
     
     // Retornar o erro com o status correto
     return NextResponse.json(
-      { error: error.message },
-      { status: error.response?.status || 500 }
+      { error: axiosError.message },
+      { status: axiosError.response?.status || 500 }
     );
   }
 }
@@ -106,13 +112,16 @@ export async function PUT(
     
     // Retornar a resposta
     return NextResponse.json(response.data);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error(`[API Proxy] Erro ao redirecionar PUT:`, error);
+    
+    // Tratar o erro como AxiosError ou erro genérico
+    const axiosError = error as AxiosError;
     
     // Retornar o erro com o status correto
     return NextResponse.json(
-      { error: error.message },
-      { status: error.response?.status || 500 }
+      { error: axiosError.message },
+      { status: axiosError.response?.status || 500 }
     );
   }
 }
@@ -140,13 +149,16 @@ export async function DELETE(
     
     // Retornar a resposta
     return NextResponse.json(response.data);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error(`[API Proxy] Erro ao redirecionar DELETE:`, error);
+    
+    // Tratar o erro como AxiosError ou erro genérico
+    const axiosError = error as AxiosError;
     
     // Retornar o erro com o status correto
     return NextResponse.json(
-      { error: error.message },
-      { status: error.response?.status || 500 }
+      { error: axiosError.message },
+      { status: axiosError.response?.status || 500 }
     );
   }
 }
@@ -177,13 +189,16 @@ export async function PATCH(
     
     // Retornar a resposta
     return NextResponse.json(response.data);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error(`[API Proxy] Erro ao redirecionar PATCH:`, error);
+    
+    // Tratar o erro como AxiosError ou erro genérico
+    const axiosError = error as AxiosError;
     
     // Retornar o erro com o status correto
     return NextResponse.json(
-      { error: error.message },
-      { status: error.response?.status || 500 }
+      { error: axiosError.message },
+      { status: axiosError.response?.status || 500 }
     );
   }
 } 
