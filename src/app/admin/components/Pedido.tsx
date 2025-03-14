@@ -368,18 +368,18 @@ export default function Pedido() {
     console.log('Modo do item:', itemModalMode);
     
     try {
-      if (!currentItem.produto_id) {
+    if (!currentItem.produto_id) {
         console.error('Produto não selecionado');
         setError('Selecione um produto');
-        return;
-      }
-      
+      return;
+    }
+
       if (!currentItem.quantidade || currentItem.quantidade <= 0) {
         console.error('Quantidade inválida:', currentItem.quantidade);
         setError('Informe uma quantidade válida');
-        return;
-      }
-      
+      return;
+    }
+
       // Verificar se o produto existe
       const produtoSelecionado = produtos.find(p => p.id === currentItem.produto_id);
       if (!produtoSelecionado) {
@@ -439,9 +439,9 @@ export default function Pedido() {
       // Lógica para pedidos em criação (que ainda não têm ID no backend)
       if (itemModalMode === 'adicionar') {
         // Adicionar novo item ao pedido atual
-        const novoItem = {
+    const novoItem = {
           id: `temp-${Date.now()}`, // ID temporário para novos itens
-          produto_id: currentItem.produto_id,
+      produto_id: currentItem.produto_id,
           produto: produtoSelecionado,
           quantidade: currentItem.quantidade,
           observacoes: currentItem.observacoes,
@@ -451,9 +451,9 @@ export default function Pedido() {
         
         console.log('Novo item a ser adicionado:', novoItem);
         
-        setCurrentPedido(prev => ({
-          ...prev,
-          itens: [...(prev.itens || []), novoItem],
+      setCurrentPedido(prev => ({
+        ...prev,
+        itens: [...(prev.itens || []), novoItem],
           valor_total: (prev.valor_total || 0) + novoItem.valor_total
         }));
         
@@ -498,9 +498,9 @@ export default function Pedido() {
         };
         
         // Atualizar o pedido com o item modificado e recalcular o valor total
-        setCurrentPedido(prev => ({
-          ...prev,
-          itens: itensAtualizados,
+      setCurrentPedido(prev => ({
+        ...prev,
+        itens: itensAtualizados,
           valor_total: (prev.valor_total || 0) - valorAnterior + valorTotal
         }));
         
@@ -513,7 +513,7 @@ export default function Pedido() {
         quantidade: 1,
         observacoes: ''
       });
-      setShowItemModal(false);
+    setShowItemModal(false);
       console.log('===== FIM DO SALVAMENTO DE ITEM =====');
     } catch (error: unknown) {
       console.error('Erro detalhado ao salvar item:', error);
@@ -598,9 +598,9 @@ export default function Pedido() {
         // Formatar itens para o formato esperado pela API
         const itensFormatados = currentPedido.itens.map(item => {
           const itemFormatado = {
-            produto_id: item.produto_id,
-            quantidade: item.quantidade,
-            observacoes: item.observacoes || undefined
+          produto_id: item.produto_id,
+          quantidade: item.quantidade,
+          observacoes: item.observacoes || undefined
           };
           console.log('Item formatado:', itemFormatado);
           return itemFormatado;
@@ -1184,102 +1184,102 @@ export default function Pedido() {
                       value={currentPedido.observacao_geral || ''}
                       onChange={handleInputChange}
                       disabled={modalMode === 'visualizar'}
-                      className="mt-1 block w-full rounded-md border-slate-700 bg-slate-800 py-2 text-white shadow-sm focus:border-amber-500 focus:ring-amber-500 sm:text-sm disabled:opacity-70"
-                      placeholder="Observações gerais do pedido"
-                    />
-                  </div>
+className="mt-1 block w-full rounded-md border-slate-700 bg-slate-800 py-2 text-white shadow-sm focus:border-amber-500 focus:ring-amber-500 sm:text-sm disabled:opacity-70"
+placeholder="Observações gerais do pedido"
+/>
+</div>
 
-                  <div>
-                    <div className="flex items-center justify-between">
-                      <label className="block text-sm font-medium text-slate-300">
-                        Itens do Pedido
-                      </label>
-                      {modalMode !== 'visualizar' && (
-                        <button
-                          type="button"
-                          onClick={handleOpenAddItemModal}
-                          className="inline-flex items-center rounded-md bg-amber-600/20 px-2 py-1 text-xs font-medium text-amber-500 hover:bg-amber-600/30"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" className="mr-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                          </svg>
-                          Adicionar Item
-                        </button>
-                      )}
-                    </div>
+<div>
+<div className="flex items-center justify-between">
+<label className="block text-sm font-medium text-slate-300">
+  Itens do Pedido
+</label>
+{modalMode !== 'visualizar' && (
+  <button
+    type="button"
+    onClick={handleOpenAddItemModal}
+    className="inline-flex items-center rounded-md bg-amber-600/20 px-2 py-1 text-xs font-medium text-amber-500 hover:bg-amber-600/30"
+  >
+    <svg xmlns="http://www.w3.org/2000/svg" className="mr-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+    </svg>
+    Adicionar Item
+  </button>
+)}
+</div>
 
-                    {(!currentPedido.itens || currentPedido.itens.length === 0) ? (
-                      <div className="mt-2 rounded-md border border-slate-700 bg-slate-800/50 p-4 text-center text-sm text-slate-400">
-                        Nenhum item adicionado ao pedido
-                      </div>
-                    ) : (
-                      <div className="mt-2 space-y-2">
+{(!currentPedido.itens || currentPedido.itens.length === 0) ? (
+<div className="mt-2 rounded-md border border-slate-700 bg-slate-800/50 p-4 text-center text-sm text-slate-400">
+  Nenhum item adicionado ao pedido
+</div>
+) : (
+<div className="mt-2 space-y-2">
                         {currentPedido.itens.map((item, index: number) => (
                           <div key={item.id || `item-${index}`} className="rounded-md border border-slate-700 bg-slate-800/50 p-3">
-                            <div className="flex items-center justify-between">
-                              <div className="flex-1">
-                                <p className="font-medium text-white">
-                                  {item.produto?.nome || getProdutoNome(item.produto_id)}
-                                </p>
-                                <div className="mt-1 flex text-sm text-slate-400">
-                                  <p className="mr-4">Qtd: {item.quantidade}</p>
+      <div className="flex items-center justify-between">
+        <div className="flex-1">
+          <p className="font-medium text-white">
+            {item.produto?.nome || getProdutoNome(item.produto_id)}
+          </p>
+          <div className="mt-1 flex text-sm text-slate-400">
+            <p className="mr-4">Qtd: {item.quantidade}</p>
                                   <p>Valor: {formatarPreco((item.preco_unitario || 0) * item.quantidade)}</p>
-                                </div>
-                                {item.observacoes && (
-                                  <p className="mt-1 text-xs text-slate-500">
-                                    Obs: {item.observacoes}
-                                  </p>
-                                )}
-                              </div>
-                              {modalMode !== 'visualizar' && (
-                                <div className="flex space-x-2">
-                                  <button
-                                    type="button"
-                                    onClick={() => handleOpenEditItemModal(item, index)}
-                                    className="rounded-md bg-slate-700 p-1 text-slate-300 hover:bg-slate-600 hover:text-white"
-                                  >
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                                    </svg>
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleRemoveItem(index)}
-                                    className="rounded-md bg-red-900/30 p-1 text-red-400 hover:bg-red-900/50 hover:text-red-300"
-                                  >
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                    </svg>
-                                  </button>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+          </div>
+          {item.observacoes && (
+            <p className="mt-1 text-xs text-slate-500">
+              Obs: {item.observacoes}
+            </p>
+          )}
+        </div>
+        {modalMode !== 'visualizar' && (
+          <div className="flex space-x-2">
+            <button
+              type="button"
+              onClick={() => handleOpenEditItemModal(item, index)}
+              className="rounded-md bg-slate-700 p-1 text-slate-300 hover:bg-slate-600 hover:text-white"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleRemoveItem(index)}
+              className="rounded-md bg-red-900/30 p-1 text-red-400 hover:bg-red-900/50 hover:text-red-300"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  ))}
+</div>
+)}
+</div>
 
-                  {currentPedido.valor_total !== undefined && (
-                    <div className="mt-4 flex justify-end border-t border-slate-700 pt-4">
-                      <p className="text-lg font-medium text-white">
-                        Total: {formatarPreco(currentPedido.valor_total)}
-                      </p>
-                    </div>
-                  )}
-                </form>
-              </div>
+{currentPedido.valor_total !== undefined && (
+<div className="mt-4 flex justify-end border-t border-slate-700 pt-4">
+<p className="text-lg font-medium text-white">
+  Total: {formatarPreco(currentPedido.valor_total)}
+</p>
+</div>
+)}
+</form>
+</div>
 
-              {/* Rodapé do modal com botões */}
-              <div className="border-t border-slate-700 px-4 py-3 sm:flex sm:flex-row-reverse">
-                {modalMode !== 'visualizar' && (
+{/* Rodapé do modal com botões */}
+<div className="border-t border-slate-700 px-4 py-3 sm:flex sm:flex-row-reverse">
+{modalMode !== 'visualizar' && (
                   <>
-                    <button
-                      type="submit"
-                      form="pedido-form"
-                      className="w-full inline-flex justify-center rounded-md border border-transparent bg-amber-600 px-4 py-2.5 text-base font-medium text-white shadow-sm hover:bg-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-slate-900 sm:ml-3 sm:w-auto sm:text-sm"
-                    >
-                      {modalMode === 'criar' ? 'Criar Pedido' : 'Salvar Alterações'}
+<button
+type="submit"
+form="pedido-form"
+className="w-full inline-flex justify-center rounded-md border border-transparent bg-amber-600 px-4 py-2.5 text-base font-medium text-white shadow-sm hover:bg-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-slate-900 sm:ml-3 sm:w-auto sm:text-sm"
+>
+{modalMode === 'criar' ? 'Criar Pedido' : 'Salvar Alterações'}
                     </button>
                     
                     {modalMode === 'editar' && (
@@ -1289,184 +1289,184 @@ export default function Pedido() {
                         className="w-full inline-flex justify-center rounded-md border border-transparent bg-green-600 px-4 py-2.5 text-base font-medium text-white shadow-sm hover:bg-green-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:ring-offset-slate-900 sm:ml-3 sm:w-auto sm:text-sm"
                       >
                         Finalizar Edição
-                      </button>
+</button>
                     )}
                   </>
-                )}
+)}
 
-                {modalMode === 'visualizar' && currentPedido._id && (
-                  <>
-                    {currentPedido.status === StatusPedido.ABERTO && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (currentPedido._id) {
-                            handleChangeStatus(currentPedido._id, StatusPedido.EM_ANDAMENTO);
-                            handleCloseModal();
-                          }
-                        }}
-                        className="w-full inline-flex justify-center rounded-md border border-transparent bg-amber-600 px-4 py-2.5 text-base font-medium text-white shadow-sm hover:bg-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-slate-900 sm:ml-3 sm:w-auto sm:text-sm"
-                      >
-                        Iniciar Preparo
-                      </button>
-                    )}
+{modalMode === 'visualizar' && currentPedido._id && (
+<>
+{currentPedido.status === StatusPedido.ABERTO && (
+<button
+  type="button"
+  onClick={() => {
+    if (currentPedido._id) {
+      handleChangeStatus(currentPedido._id, StatusPedido.EM_ANDAMENTO);
+      handleCloseModal();
+    }
+  }}
+  className="w-full inline-flex justify-center rounded-md border border-transparent bg-amber-600 px-4 py-2.5 text-base font-medium text-white shadow-sm hover:bg-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-slate-900 sm:ml-3 sm:w-auto sm:text-sm"
+>
+  Iniciar Preparo
+</button>
+)}
 
-                    {currentPedido.status === StatusPedido.EM_ANDAMENTO && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (currentPedido._id) {
-                            handleChangeStatus(currentPedido._id, StatusPedido.FINALIZADO);
-                            handleCloseModal();
-                          }
-                        }}
-                        className="w-full inline-flex justify-center rounded-md border border-transparent bg-emerald-600 px-4 py-2.5 text-base font-medium text-white shadow-sm hover:bg-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-slate-900 sm:ml-3 sm:w-auto sm:text-sm"
-                      >
-                        Finalizar Pedido
-                      </button>
-                    )}
+{currentPedido.status === StatusPedido.EM_ANDAMENTO && (
+<button
+  type="button"
+  onClick={() => {
+    if (currentPedido._id) {
+      handleChangeStatus(currentPedido._id, StatusPedido.FINALIZADO);
+      handleCloseModal();
+    }
+  }}
+  className="w-full inline-flex justify-center rounded-md border border-transparent bg-emerald-600 px-4 py-2.5 text-base font-medium text-white shadow-sm hover:bg-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-slate-900 sm:ml-3 sm:w-auto sm:text-sm"
+>
+  Finalizar Pedido
+</button>
+)}
 
-                    {(currentPedido.status === StatusPedido.ABERTO || currentPedido.status === StatusPedido.EM_ANDAMENTO) && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (currentPedido._id) {
-                            handleChangeStatus(currentPedido._id, StatusPedido.CANCELADO);
-                            handleCloseModal();
-                          }
-                        }}
-                        className="w-full inline-flex justify-center rounded-md border border-transparent bg-red-600 px-4 py-2.5 text-base font-medium text-white shadow-sm hover:bg-red-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-slate-900 sm:ml-3 sm:w-auto sm:text-sm"
-                      >
-                        Cancelar Pedido
-                      </button>
-                    )}
-                  </>
-                )}
+{(currentPedido.status === StatusPedido.ABERTO || currentPedido.status === StatusPedido.EM_ANDAMENTO) && (
+<button
+  type="button"
+  onClick={() => {
+    if (currentPedido._id) {
+      handleChangeStatus(currentPedido._id, StatusPedido.CANCELADO);
+      handleCloseModal();
+    }
+  }}
+  className="w-full inline-flex justify-center rounded-md border border-transparent bg-red-600 px-4 py-2.5 text-base font-medium text-white shadow-sm hover:bg-red-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-slate-900 sm:ml-3 sm:w-auto sm:text-sm"
+>
+  Cancelar Pedido
+</button>
+)}
+</>
+)}
 
-                <button
-                  type="button"
-                  onClick={handleCloseModal}
-                  className="mt-3 w-full inline-flex justify-center rounded-md border border-slate-700 bg-slate-800 px-4 py-2.5 text-base font-medium text-slate-300 shadow-sm hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-slate-900 sm:mt-0 sm:w-auto sm:text-sm"
-                >
-                  {modalMode === 'visualizar' ? 'Fechar' : 'Cancelar'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+<button
+type="button"
+onClick={handleCloseModal}
+className="mt-3 w-full inline-flex justify-center rounded-md border border-slate-700 bg-slate-800 px-4 py-2.5 text-base font-medium text-slate-300 shadow-sm hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-slate-900 sm:mt-0 sm:w-auto sm:text-sm"
+>
+{modalMode === 'visualizar' ? 'Fechar' : 'Cancelar'}
+</button>
+</div>
+</div>
+</div>
+</div>
+)}
 
-      {/* Modal de Item */}
-      {showItemModal && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="flex min-h-screen items-center justify-center p-4 text-center sm:p-0">
-            {/* Overlay de fundo */}
-            <div 
-              className="fixed inset-0 bg-slate-950/80 transition-opacity" 
-              aria-hidden="true"
-              onClick={handleCloseItemModal}
-            ></div>
+{/* Modal de Item */}
+{showItemModal && (
+<div className="fixed inset-0 z-50 overflow-y-auto">
+<div className="flex min-h-screen items-center justify-center p-4 text-center sm:p-0">
+{/* Overlay de fundo */}
+<div 
+className="fixed inset-0 bg-slate-950/80 transition-opacity" 
+aria-hidden="true"
+onClick={handleCloseItemModal}
+></div>
 
-            {/* Centralizador para telas maiores */}
-            <span className="hidden sm:inline-block sm:h-screen sm:align-middle" aria-hidden="true">&#8203;</span>
+{/* Centralizador para telas maiores */}
+<span className="hidden sm:inline-block sm:h-screen sm:align-middle" aria-hidden="true">&#8203;</span>
 
-            {/* Modal */}
-            <div className="inline-block w-full max-h-[90vh] transform overflow-hidden rounded-lg border border-slate-700 bg-slate-900 text-left align-bottom shadow-xl transition-all sm:my-8 sm:max-w-md sm:align-middle md:w-full">
-              {/* Cabeçalho do modal com botão de fechar */}
-              <div className="flex items-center justify-between border-b border-slate-700 px-4 py-3">
-                <h3 className="text-lg font-medium leading-6 text-white">
-                  {itemModalMode === 'adicionar' ? 'Adicionar Item' : 'Editar Item'}
-                </h3>
-                <button
-                  type="button"
-                  onClick={handleCloseItemModal}
-                  className="rounded-md bg-slate-900 text-slate-400 hover:text-white focus:outline-none"
-                >
-                  <span className="sr-only">Fechar</span>
-                  <svg className="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
+{/* Modal */}
+<div className="inline-block w-full max-h-[90vh] transform overflow-hidden rounded-lg border border-slate-700 bg-slate-900 text-left align-bottom shadow-xl transition-all sm:my-8 sm:max-w-md sm:align-middle md:w-full">
+{/* Cabeçalho do modal com botão de fechar */}
+<div className="flex items-center justify-between border-b border-slate-700 px-4 py-3">
+<h3 className="text-lg font-medium leading-6 text-white">
+{itemModalMode === 'adicionar' ? 'Adicionar Item' : 'Editar Item'}
+</h3>
+<button
+type="button"
+onClick={handleCloseItemModal}
+className="rounded-md bg-slate-900 text-slate-400 hover:text-white focus:outline-none"
+>
+<span className="sr-only">Fechar</span>
+<svg className="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+</svg>
+</button>
+</div>
 
-              {/* Corpo do modal */}
-              <div className="p-4">
-                <div className="space-y-4">
-                  <div>
-                    <label htmlFor="produto_id" className="block text-sm font-medium text-slate-300">
-                      Produto
-                    </label>
-                    <select
-                      id="produto_id"
-                      name="produto_id"
-                      value={currentItem.produto_id}
-                      onChange={handleItemInputChange}
-                      className="mt-1 block w-full rounded-md border-slate-700 bg-slate-800 py-2 text-white shadow-sm focus:border-amber-500 focus:ring-amber-500 sm:text-sm"
-                    >
-                      <option value="">Selecione um produto</option>
-                      {produtos.map((produto) => (
-                        <option key={produto.id} value={produto.id}>
-                          {produto.nome} - {formatarPreco(produto.preco)}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+{/* Corpo do modal */}
+<div className="p-4">
+<div className="space-y-4">
+<div>
+<label htmlFor="produto_id" className="block text-sm font-medium text-slate-300">
+Produto
+</label>
+<select
+id="produto_id"
+name="produto_id"
+value={currentItem.produto_id}
+onChange={handleItemInputChange}
+className="mt-1 block w-full rounded-md border-slate-700 bg-slate-800 py-2 text-white shadow-sm focus:border-amber-500 focus:ring-amber-500 sm:text-sm"
+>
+<option value="">Selecione um produto</option>
+{produtos.map((produto) => (
+  <option key={produto.id} value={produto.id}>
+    {produto.nome} - {formatarPreco(produto.preco)}
+  </option>
+))}
+</select>
+</div>
 
-                  <div>
-                    <label htmlFor="quantidade" className="block text-sm font-medium text-slate-300">
-                      Quantidade
-                    </label>
-                    <input
-                      type="number"
-                      id="quantidade"
-                      name="quantidade"
-                      min="1"
-                      value={currentItem.quantidade}
-                      onChange={handleItemInputChange}
-                      className="mt-1 block w-full rounded-md border-slate-700 bg-slate-800 py-2 text-white shadow-sm focus:border-amber-500 focus:ring-amber-500 sm:text-sm"
-                    />
-                  </div>
+<div>
+<label htmlFor="quantidade" className="block text-sm font-medium text-slate-300">
+Quantidade
+</label>
+<input
+type="number"
+id="quantidade"
+name="quantidade"
+min="1"
+value={currentItem.quantidade}
+onChange={handleItemInputChange}
+className="mt-1 block w-full rounded-md border-slate-700 bg-slate-800 py-2 text-white shadow-sm focus:border-amber-500 focus:ring-amber-500 sm:text-sm"
+/>
+</div>
 
-                  <div>
-                    <label htmlFor="observacoes" className="block text-sm font-medium text-slate-300">
-                      Observações
-                    </label>
-                    <textarea
-                      id="observacoes"
-                      name="observacoes"
-                      rows={2}
-                      value={currentItem.observacoes || ''}
-                      onChange={handleItemInputChange}
-                      className="mt-1 block w-full rounded-md border-slate-700 bg-slate-800 py-2 text-white shadow-sm focus:border-amber-500 focus:ring-amber-500 sm:text-sm"
-                      placeholder="Ex: Sem cebola, bem passado, etc."
-                    />
-                  </div>
-                </div>
-              </div>
+<div>
+<label htmlFor="observacoes" className="block text-sm font-medium text-slate-300">
+Observações
+</label>
+<textarea
+id="observacoes"
+name="observacoes"
+rows={2}
+value={currentItem.observacoes || ''}
+onChange={handleItemInputChange}
+className="mt-1 block w-full rounded-md border-slate-700 bg-slate-800 py-2 text-white shadow-sm focus:border-amber-500 focus:ring-amber-500 sm:text-sm"
+placeholder="Ex: Sem cebola, bem passado, etc."
+/>
+</div>
+</div>
+</div>
 
-              {/* Rodapé do modal com botões */}
-              <div className="border-t border-slate-700 px-4 py-3 sm:flex sm:flex-row-reverse">
-                <button
-                  type="button"
-                  onClick={handleSaveItem}
-                  className="w-full inline-flex justify-center rounded-md border border-transparent bg-amber-600 px-4 py-2.5 text-base font-medium text-white shadow-sm hover:bg-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-slate-900 sm:ml-3 sm:w-auto sm:text-sm"
-                >
-                  {itemModalMode === 'adicionar' ? 'Adicionar' : 'Salvar'}
-                </button>
-                <button
-                  type="button"
-                  onClick={handleCloseItemModal}
-                  className="mt-3 w-full inline-flex justify-center rounded-md border border-slate-700 bg-slate-800 px-4 py-2.5 text-base font-medium text-slate-300 shadow-sm hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-slate-900 sm:mt-0 sm:w-auto sm:text-sm"
-                >
-                  Cancelar
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
+{/* Rodapé do modal com botões */}
+<div className="border-t border-slate-700 px-4 py-3 sm:flex sm:flex-row-reverse">
+<button
+type="button"
+onClick={handleSaveItem}
+className="w-full inline-flex justify-center rounded-md border border-transparent bg-amber-600 px-4 py-2.5 text-base font-medium text-white shadow-sm hover:bg-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-slate-900 sm:ml-3 sm:w-auto sm:text-sm"
+>
+{itemModalMode === 'adicionar' ? 'Adicionar' : 'Salvar'}
+</button>
+<button
+type="button"
+onClick={handleCloseItemModal}
+className="mt-3 w-full inline-flex justify-center rounded-md border border-slate-700 bg-slate-800 px-4 py-2.5 text-base font-medium text-slate-300 shadow-sm hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-slate-900 sm:mt-0 sm:w-auto sm:text-sm"
+>
+Cancelar
+</button>
+</div>
+</div>
+</div>
+</div>
+)}
+</div>
+);
 }
 
 // Função para renderizar a lista de pedidos (separada para poder ser chamada dentro do bloco de sucesso)

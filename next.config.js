@@ -3,6 +3,15 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  async rewrites() {
+    // Configurar rewrites para redirecionar as requisições do cliente para o backend
+    return [
+      {
+        source: '/api/:path*',
+        destination: 'https://restaurantebackend-production.up.railway.app/:path*',
+      }
+    ];
+  },
   async headers() {
     return [
       {

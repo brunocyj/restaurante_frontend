@@ -1,10 +1,16 @@
 import axios from 'axios';
 
-// URL base da API - simplificada
-export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+// Determinar se estamos no servidor ou no cliente
+const isServer = typeof window === 'undefined';
+
+// URL base da API - agora com lógica para servidor/cliente
+export const API_URL = isServer 
+  ? (process.env.INTERNAL_API_URL || 'http://restaurante_backend:8000')
+  : '/api/proxy';
 
 // Log para depuração
 console.log(`Ambiente: ${process.env.NODE_ENV}`);
+console.log(`Executando no: ${isServer ? 'servidor' : 'cliente'}`);
 console.log(`URL da API configurada: ${API_URL}`);
 
 // Instância do Axios com configurações padrão
@@ -22,7 +28,7 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     // Verificar se estamos no navegador antes de acessar localStorage
-    if (typeof window !== 'undefined') {
+    if (!isServer) {
       const token = localStorage.getItem('token');
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
