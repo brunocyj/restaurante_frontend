@@ -1,5 +1,5 @@
 import axios from 'axios';
-
+//xd
 // URL base da API - simplificada para usar o rewrite
 export const API_URL = '/api';
 

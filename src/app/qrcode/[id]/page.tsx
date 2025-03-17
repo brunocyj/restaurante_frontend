@@ -16,6 +16,7 @@ import {
   getPedidosPorMesa, 
   adicionarItemAoPedido, 
   atualizarStatusPedido, 
+  updatePedido,
   StatusPedido,
   Pedido
 } from '@/lib/pedido';
@@ -50,7 +51,7 @@ export default function QRCodePage() {
   const [observacoesModal, setObservacoesModal] = useState('');
   
   // Estados para pedidos e notificações
-  const [pedidoAtual, setPedidoAtual] = useState<string | null>(null);
+  const [pedidoAtual, setPedidoAtual] = useState<Pedido | null>(null);
   const [pedidoStatus, setPedidoStatus] = useState<StatusPedido | null>(null);
   const [enviandoPedido, setEnviandoPedido] = useState(false);
   const [sucessoEnvio, setSucessoEnvio] = useState<string | null>(null);
@@ -58,6 +59,14 @@ export default function QRCodePage() {
   const [observacaoGeral, setObservacaoGeral] = useState('');
   const [chamandoAtendente, setChamandoAtendente] = useState(false);
   const [pedindoConta, setPedindoConta] = useState(false);
+  
+  // Estados para controle de modais
+  const [showPedidoModal, setShowPedidoModal] = useState(false);
+  
+  // Estados para controle de mensagens
+  const [mensagem, setMensagem] = useState<string | null>(null);
+  const [tipoMensagem, setTipoMensagem] = useState<'sucesso' | 'erro'>('sucesso');
+  const [showMensagem, setShowMensagem] = useState(false);
   
   // Carregar dados da mesa e do cardápio
   useEffect(() => {
@@ -133,7 +142,7 @@ export default function QRCodePage() {
           if (pedidosAtivos.length > 0) {
             // Existe um pedido ativo para esta mesa
             const pedidoAtivo = pedidosAtivos[0];
-            setPedidoAtual(pedidoAtivo.id);
+            setPedidoAtual(pedidoAtivo);
             setPedidoStatus(pedidoAtivo.status);
             
             // Exibir mensagem informativa
@@ -244,14 +253,8 @@ export default function QRCodePage() {
   
   // Função para enviar pedido
   const enviarPedido = async () => {
-    if (carrinho.length === 0) {
-      setError('Adicione pelo menos um item ao pedido');
-      return;
-    }
-
     try {
       setEnviandoPedido(true);
-      setError(null);
       
       // Formatar itens para o formato esperado pela API
       const itensFormatados = carrinho.map(item => ({
@@ -263,10 +266,23 @@ export default function QRCodePage() {
       if (pedidoAtual) {
         // Já existe um pedido, adicionar itens a ele
         for (const item of itensFormatados) {
-          await adicionarItemAoPedido(pedidoAtual, item);
+          await adicionarItemAoPedido(pedidoAtual.id, item);
         }
         
-        setSucessoEnvio('Itens adicionados ao seu pedido com sucesso!');
+        // Atualizar observação geral se existir
+        if (observacaoGeral) {
+          await updatePedido(pedidoAtual.id, { observacao_geral: observacaoGeral });
+        }
+        
+        // Mostrar mensagem de sucesso
+        setMensagem('Itens adicionados ao pedido com sucesso!');
+        setTipoMensagem('sucesso');
+        setShowMensagem(true);
+        
+        // Esconder mensagem após 3 segundos
+        setTimeout(() => {
+          setShowMensagem(false);
+        }, 3000);
       } else {
         // Criar um novo pedido
         const dadosPedido = {
@@ -276,24 +292,37 @@ export default function QRCodePage() {
         };
         
         const novoPedido = await createPedido(dadosPedido);
-        setPedidoAtual(novoPedido.id);
+        setPedidoAtual(novoPedido);
         setPedidoStatus(novoPedido.status);
         
-        setSucessoEnvio('Pedido enviado com sucesso!');
+        // Mostrar mensagem de sucesso
+        setMensagem('Pedido enviado com sucesso!');
+        setTipoMensagem('sucesso');
+        setShowMensagem(true);
+        
+        // Esconder mensagem após 3 segundos
+        setTimeout(() => {
+          setShowMensagem(false);
+        }, 3000);
       }
       
-      // Limpar o carrinho após o envio
+      // Limpar carrinho e fechar modal
       setCarrinho([]);
+      setObservacaoGeral('');
       setShowCarrinho(false);
-      
-      // Exibir modal de ações após o envio
-      setTimeout(() => {
-        setShowAcoesModal(true);
-      }, 1500);
       
     } catch (error) {
       console.error('Erro ao enviar pedido:', error);
-      setError('Não foi possível enviar o pedido. Tente novamente.');
+      
+      // Mostrar mensagem de erro
+      setMensagem('Erro ao enviar pedido. Tente novamente.');
+      setTipoMensagem('erro');
+      setShowMensagem(true);
+      
+      // Esconder mensagem após 3 segundos
+      setTimeout(() => {
+        setShowMensagem(false);
+      }, 3000);
     } finally {
       setEnviandoPedido(false);
     }
@@ -304,17 +333,33 @@ export default function QRCodePage() {
     try {
       setChamandoAtendente(true);
       
-      // Aqui você implementaria a lógica para enviar uma notificação ao sistema
-      // Por exemplo, usando uma API de notificações ou websockets
-      
-      // Simulação de envio de notificação
+      // Simular chamado de atendente (aqui você implementaria a lógica real)
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      setSucessoEnvio('Atendente chamado com sucesso! Logo alguém virá atendê-lo.');
+      // Mostrar mensagem de sucesso
+      setMensagem('Atendente chamado com sucesso!');
+      setTipoMensagem('sucesso');
+      setShowMensagem(true);
+      
+      // Esconder mensagem após 3 segundos
+      setTimeout(() => {
+        setShowMensagem(false);
+      }, 3000);
+      
+      // Fechar modal de ações
       setShowAcoesModal(false);
     } catch (error) {
       console.error('Erro ao chamar atendente:', error);
-      setError('Não foi possível chamar o atendente. Tente novamente.');
+      
+      // Mostrar mensagem de erro
+      setMensagem('Erro ao chamar atendente. Tente novamente.');
+      setTipoMensagem('erro');
+      setShowMensagem(true);
+      
+      // Esconder mensagem após 3 segundos
+      setTimeout(() => {
+        setShowMensagem(false);
+      }, 3000);
     } finally {
       setChamandoAtendente(false);
     }
@@ -322,26 +367,41 @@ export default function QRCodePage() {
   
   // Função para pedir a conta
   const pedirConta = async () => {
-    if (!pedidoAtual) {
-      setError('Não há pedido ativo para esta mesa.');
-      return;
-    }
-    
     try {
       setPedindoConta(true);
       
+      if (!pedidoAtual) {
+        throw new Error('Não há pedido ativo para encerrar');
+      }
+      
       // Atualizar o status do pedido para finalizado
-      await atualizarStatusPedido(pedidoAtual, StatusPedido.FINALIZADO);
+      await atualizarStatusPedido(pedidoAtual.id, StatusPedido.FINALIZADO);
       setPedidoStatus(StatusPedido.FINALIZADO);
       
-      // Simulação de envio de notificação
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Mostrar mensagem de sucesso
+      setMensagem('Conta solicitada com sucesso!');
+      setTipoMensagem('sucesso');
+      setShowMensagem(true);
       
-      setSucessoEnvio('Conta solicitada com sucesso! Logo alguém trará sua conta.');
+      // Esconder mensagem após 3 segundos
+      setTimeout(() => {
+        setShowMensagem(false);
+      }, 3000);
+      
+      // Fechar modal de ações
       setShowAcoesModal(false);
     } catch (error) {
       console.error('Erro ao pedir a conta:', error);
-      setError('Não foi possível solicitar a conta. Tente novamente.');
+      
+      // Mostrar mensagem de erro
+      setMensagem('Erro ao pedir a conta. Tente novamente.');
+      setTipoMensagem('erro');
+      setShowMensagem(true);
+      
+      // Esconder mensagem após 3 segundos
+      setTimeout(() => {
+        setShowMensagem(false);
+      }, 3000);
     } finally {
       setPedindoConta(false);
     }
@@ -606,22 +666,22 @@ export default function QRCodePage() {
       {/* Modal do carrinho */}
       {showCarrinho && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black bg-opacity-75 sm:items-center">
-          <div className="w-full max-w-md rounded-t-lg bg-slate-900 shadow-xl sm:rounded-lg">
-            <div className="p-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-medium text-white">Seu Pedido</h3>
-                <button 
-                  onClick={() => setShowCarrinho(false)}
-                  className="rounded-full bg-slate-800 p-1 text-slate-400 hover:text-white"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-              
+          <div className="w-full max-h-[90vh] sm:max-h-[80vh] max-w-md rounded-t-lg bg-slate-900 shadow-xl sm:rounded-lg overflow-hidden flex flex-col">
+            <div className="p-4 border-b border-slate-800 flex items-center justify-between sticky top-0 bg-slate-900 z-10">
+              <h3 className="text-lg font-medium text-white">Seu Pedido</h3>
+              <button 
+                onClick={() => setShowCarrinho(false)}
+                className="rounded-full bg-slate-800 p-1 text-slate-400 hover:text-white"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-4">
               {carrinho.length === 0 ? (
-                <div className="mt-4 py-8 text-center">
+                <div className="py-8 text-center">
                   <svg xmlns="http://www.w3.org/2000/svg" className="mx-auto h-12 w-12 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
                   </svg>
@@ -634,94 +694,92 @@ export default function QRCodePage() {
                   </button>
                 </div>
               ) : (
-                <>
-                  <div className="mt-4 max-h-80 overflow-y-auto">
-                    {carrinho.map(item => (
-                      <div key={item.produto_id} className="mb-3 rounded-md border border-slate-800 bg-slate-800/50 p-3">
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <p className="font-medium text-white">{item.produto.nome}</p>
-                            <div className="mt-1 flex text-sm text-slate-400">
-                              <p className="mr-4">Qtd: {item.quantidade}</p>
-                              <p>Valor: {formatarPreco(item.produto.preco * item.quantidade)}</p>
-                            </div>
-                            {item.observacoes && (
-                              <p className="mt-1 text-xs text-slate-500">
-                                Obs: {item.observacoes}
-                              </p>
-                            )}
+                <div className="space-y-3">
+                  {carrinho.map(item => (
+                    <div key={item.produto_id} className="rounded-md border border-slate-800 bg-slate-800/50 p-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <p className="font-medium text-white">{item.produto.nome}</p>
+                          <div className="mt-1 flex text-sm text-slate-400">
+                            <p className="mr-4">Qtd: {item.quantidade}</p>
+                            <p>Valor: {formatarPreco(item.produto.preco * item.quantidade)}</p>
                           </div>
-                          <div className="flex items-center space-x-2">
-                            <button 
-                              onClick={() => atualizarQuantidade(item.produto_id, item.quantidade - 1)}
-                              className="rounded-full bg-slate-700 p-1 text-white hover:bg-slate-600"
-                            >
-                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
-                              </svg>
-                            </button>
-                            <button 
-                              onClick={() => atualizarQuantidade(item.produto_id, item.quantidade + 1)}
-                              className="rounded-full bg-slate-700 p-1 text-white hover:bg-slate-600"
-                            >
-                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                              </svg>
-                            </button>
-                            <button 
-                              onClick={() => removerDoCarrinho(item.produto_id)}
-                              className="rounded-full bg-red-500/20 p-1 text-red-400 hover:bg-red-500/30"
-                            >
-                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                              </svg>
-                            </button>
-                          </div>
+                          {item.observacoes && (
+                            <p className="mt-1 text-xs text-slate-500">
+                              Obs: {item.observacoes}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <button 
+                            onClick={() => atualizarQuantidade(item.produto_id, item.quantidade - 1)}
+                            className="rounded-full bg-slate-700 p-1 text-white hover:bg-slate-600"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+                            </svg>
+                          </button>
+                          <button 
+                            onClick={() => atualizarQuantidade(item.produto_id, item.quantidade + 1)}
+                            className="rounded-full bg-slate-700 p-1 text-white hover:bg-slate-600"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                            </svg>
+                          </button>
+                          <button 
+                            onClick={() => removerDoCarrinho(item.produto_id)}
+                            className="rounded-full bg-red-500/20 p-1 text-red-400 hover:bg-red-500/30"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                  
-                  <div className="mt-4 border-t border-slate-800 pt-4">
-                    <div className="flex items-center justify-between">
-                      <p className="text-lg font-medium text-white">Total</p>
-                      <p className="text-lg font-bold text-amber-500">{formatarPreco(calcularTotal())}</p>
                     </div>
-                  </div>
-                  
-                  <div className="mt-4">
-                    <div className="mb-4">
-                      <label className="block text-sm font-medium text-slate-300 mb-1">Observações gerais</label>
-                      <textarea 
-                        value={observacaoGeral}
-                        onChange={(e) => setObservacaoGeral(e.target.value)}
-                        rows={2}
-                        className="w-full rounded-md border border-slate-700 bg-slate-800 py-2 px-3 text-white shadow-sm focus:border-amber-500 focus:ring-amber-500 sm:text-sm"
-                        placeholder="Alguma observação para todo o pedido?"
-                      />
-                    </div>
-                    
-                    <button 
-                      onClick={enviarPedido}
-                      disabled={enviandoPedido || carrinho.length === 0}
-                      className="w-full rounded-md bg-amber-500 py-3 px-4 text-center font-medium text-white hover:bg-amber-600 disabled:opacity-50"
-                    >
-                      {enviandoPedido ? (
-                        <div className="flex items-center justify-center space-x-2">
-                          <svg className="h-5 w-5 animate-spin text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                          </svg>
-                          <span>Enviando...</span>
-                        </div>
-                      ) : (
-                        pedidoAtual ? 'Adicionar ao Pedido' : 'Finalizar Pedido'
-                      )}
-                    </button>
-                  </div>
-                </>
+                  ))}
+                </div>
               )}
             </div>
+            
+            {carrinho.length > 0 && (
+              <div className="border-t border-slate-800 p-4 bg-slate-900 sticky bottom-0">
+                <div className="flex items-center justify-between mb-4">
+                  <p className="text-lg font-medium text-white">Total</p>
+                  <p className="text-lg font-bold text-amber-500">{formatarPreco(calcularTotal())}</p>
+                </div>
+                
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-slate-300 mb-1">Observações gerais</label>
+                  <textarea 
+                    value={observacaoGeral}
+                    onChange={(e) => setObservacaoGeral(e.target.value)}
+                    rows={2}
+                    className="w-full rounded-md border border-slate-700 bg-slate-800 py-2 px-3 text-white shadow-sm focus:border-amber-500 focus:ring-amber-500 sm:text-sm"
+                    placeholder="Alguma observação para todo o pedido?"
+                  />
+                </div>
+                
+                <button 
+                  onClick={enviarPedido}
+                  disabled={enviandoPedido || carrinho.length === 0}
+                  className="w-full rounded-md bg-amber-500 py-3 px-4 text-center font-medium text-white hover:bg-amber-600 disabled:opacity-50"
+                >
+                  {enviandoPedido ? (
+                    <div className="flex items-center justify-center space-x-2">
+                      <svg className="h-5 w-5 animate-spin text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <span>Enviando...</span>
+                    </div>
+                  ) : (
+                    pedidoAtual ? 'Adicionar ao Pedido' : 'Finalizar Pedido'
+                  )}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -801,35 +859,152 @@ export default function QRCodePage() {
         </div>
       )}
       
-      {/* Botão flutuante do carrinho (visível apenas em mobile quando o carrinho tem itens) */}
-      {carrinho.length > 0 && !showCarrinho && (
-        <div className="fixed bottom-4 right-4 sm:hidden">
-          <button 
-            onClick={() => setShowCarrinho(true)}
-            className="flex items-center space-x-2 rounded-full bg-amber-500 py-2 px-4 text-white shadow-lg hover:bg-amber-600"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-            </svg>
-            <span className="font-medium">{carrinho.reduce((total, item) => total + item.quantidade, 0)}</span>
-          </button>
+      {/* Modal para visualizar pedido atual */}
+      {showPedidoModal && pedidoAtual && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black bg-opacity-75 sm:items-center">
+          <div className="w-full max-h-[90vh] sm:max-h-[80vh] max-w-md rounded-t-lg bg-slate-900 shadow-xl sm:rounded-lg overflow-hidden flex flex-col">
+            <div className="p-4 border-b border-slate-800 flex items-center justify-between sticky top-0 bg-slate-900 z-10">
+              <h3 className="text-lg font-medium text-white">Pedido Atual</h3>
+              <button 
+                onClick={() => setShowPedidoModal(false)}
+                className="rounded-full bg-slate-800 p-1 text-slate-400 hover:text-white"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-4">
+              <div className="mb-4">
+                <div className="flex justify-between items-center mb-2">
+                  <p className="text-slate-300">Status:</p>
+                  <span className={`px-2 py-1 rounded text-xs font-medium ${
+                    pedidoAtual.status === StatusPedido.ABERTO ? 'bg-yellow-500/20 text-yellow-400' :
+                    pedidoAtual.status === StatusPedido.EM_ANDAMENTO ? 'bg-blue-500/20 text-blue-400' :
+                    pedidoAtual.status === StatusPedido.FINALIZADO ? 'bg-green-500/20 text-green-400' :
+                    'bg-slate-500/20 text-slate-400'
+                  }`}>
+                    {pedidoAtual.status === StatusPedido.ABERTO ? 'Pendente' :
+                     pedidoAtual.status === StatusPedido.EM_ANDAMENTO ? 'Preparando' :
+                     pedidoAtual.status === StatusPedido.FINALIZADO ? 'Pronto para entrega' :
+                     pedidoAtual.status}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center mb-2">
+                  <p className="text-slate-300">Número do pedido:</p>
+                  <p className="text-white font-medium">{pedidoAtual.id}</p>
+                </div>
+                <div className="flex justify-between items-center">
+                  <p className="text-slate-300">Horário:</p>
+                  <p className="text-white">{new Date(pedidoAtual.criado_em).toLocaleTimeString('pt-BR')}</p>
+                </div>
+              </div>
+              
+              <h4 className="font-medium text-white mb-2 mt-4">Itens do pedido:</h4>
+              <div className="space-y-3">
+                {pedidoAtual.itens.map((item, index) => (
+                  <div key={index} className="rounded-md border border-slate-800 bg-slate-800/50 p-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <p className="font-medium text-white">{item.produto?.nome || 'Produto'}</p>
+                        <div className="mt-1 flex text-sm text-slate-400">
+                          <p className="mr-4">Qtd: {item.quantidade}</p>
+                          <p>Valor: {formatarPreco((item.produto?.preco || 0) * item.quantidade)}</p>
+                        </div>
+                        {item.observacoes && (
+                          <p className="mt-1 text-xs text-slate-500">
+                            Obs: {item.observacoes}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              {pedidoAtual.observacao_geral && (
+                <div className="mt-4">
+                  <h4 className="font-medium text-white mb-2">Observações gerais:</h4>
+                  <p className="text-slate-400 text-sm bg-slate-800/50 p-3 rounded-md border border-slate-800">
+                    {pedidoAtual.observacao_geral}
+                  </p>
+                </div>
+              )}
+            </div>
+            
+            <div className="border-t border-slate-800 p-4 bg-slate-900 sticky bottom-0">
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-lg font-medium text-white">Total</p>
+                <p className="text-lg font-bold text-amber-500">
+                  {formatarPreco(pedidoAtual.valor_total)}
+                </p>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-3">
+                <button 
+                  onClick={() => {
+                    chamarAtendente();
+                    setShowPedidoModal(false);
+                  }}
+                  className="rounded-md bg-blue-600 py-2 px-4 text-center font-medium text-white hover:bg-blue-700"
+                >
+                  Chamar Atendente
+                </button>
+                <button 
+                  onClick={() => {
+                    pedirConta();
+                    setShowPedidoModal(false);
+                  }}
+                  className="rounded-md bg-green-600 py-2 px-4 text-center font-medium text-white hover:bg-green-700"
+                >
+                  Pedir a Conta
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
       
-      {/* Botão flutuante para ações (visível apenas em mobile quando há pedido ativo) */}
-      {pedidoAtual && !showAcoesModal && !showCarrinho && (
-        <div className="fixed bottom-4 left-4 sm:hidden">
-          <button 
-            onClick={() => setShowAcoesModal(true)}
-            className="flex items-center space-x-2 rounded-full bg-blue-500 py-2 px-4 text-white shadow-lg hover:bg-blue-600"
+      {/* Botões flutuantes para dispositivos móveis */}
+      <div className="fixed bottom-4 right-4 z-40 flex flex-col space-y-2 sm:hidden">
+        {pedidoAtual && (
+          <button
+            onClick={() => setShowPedidoModal(true)}
+            className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg hover:bg-blue-700"
+            aria-label="Ver pedido atual"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" />
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
             </svg>
-            <span className="font-medium">Ações</span>
           </button>
-        </div>
-      )}
+        )}
+        
+        <button
+          onClick={() => setShowCarrinho(true)}
+          className="relative flex h-14 w-14 items-center justify-center rounded-full bg-amber-500 text-white shadow-lg hover:bg-amber-600"
+          aria-label="Ver carrinho"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+          </svg>
+          {carrinho.length > 0 && (
+            <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-600 text-xs font-bold">
+              {carrinho.length}
+            </span>
+          )}
+        </button>
+        
+        <button
+          onClick={() => setShowAcoesModal(true)}
+          className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-700 text-white shadow-lg hover:bg-slate-600"
+          aria-label="Ações"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" />
+          </svg>
+        </button>
+      </div>
       
       {/* Mensagem de status do pedido (visível quando há pedido ativo) */}
       {pedidoStatus && (
@@ -837,6 +1012,26 @@ export default function QRCodePage() {
           <span className="text-amber-400">
             Status do pedido: <span className="font-medium">{pedidoStatus}</span>
           </span>
+        </div>
+      )}
+      
+      {/* Componente de mensagem */}
+      {showMensagem && mensagem && (
+        <div className={`fixed top-4 left-1/2 transform -translate-x-1/2 z-50 px-4 py-3 rounded-md shadow-lg ${
+          tipoMensagem === 'sucesso' ? 'bg-green-600' : 'bg-red-600'
+        }`}>
+          <div className="flex items-center">
+            {tipoMensagem === 'sucesso' ? (
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            ) : (
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            )}
+            <p className="text-white">{mensagem}</p>
+          </div>
         </div>
       )}
     </div>
