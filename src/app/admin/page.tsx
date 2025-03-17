@@ -3,11 +3,12 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { logout, getUserInfo } from '@/lib/auth';
+import { getMesas, MesaStatus, Mesa as MesaType } from '@/lib/mesa';
+import { getPedidosPorStatus, StatusPedido, Pedido as PedidoType } from '@/lib/pedido';
 
 import Cardapio from './components/Cardapio';
 import Mesa from './components/Mesa';
 import Pedido from './components/Pedido';
-
 
 interface UserData {
   username: string;
@@ -24,6 +25,12 @@ export default function AdminPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  
+  // Estados para o dashboard
+  const [mesas, setMesas] = useState<MesaType[]>([]);
+  const [pedidos, setPedidos] = useState<PedidoType[]>([]);
+  const [dashboardLoading, setDashboardLoading] = useState(false);
+  const [dashboardError, setDashboardError] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchUserData() {
@@ -39,6 +46,47 @@ export default function AdminPage() {
 
     fetchUserData();
   }, []);
+  
+  // Função para carregar dados do dashboard
+  const loadDashboardData = async () => {
+    if (activeTab !== 'dashboard') return;
+    
+    try {
+      setDashboardLoading(true);
+      setDashboardError(null);
+      
+      // Carregar mesas e pedidos em paralelo
+      const [mesasData, pedidosAbertos, pedidosEmAndamento] = await Promise.all([
+        getMesas(),
+        getPedidosPorStatus(StatusPedido.ABERTO),
+        getPedidosPorStatus(StatusPedido.EM_ANDAMENTO)
+      ]);
+      
+      setMesas(mesasData || []);
+      
+      // Combinar pedidos abertos e em andamento
+      const todosPedidosAtivos = [...(pedidosAbertos || []), ...(pedidosEmAndamento || [])];
+      setPedidos(todosPedidosAtivos);
+      
+    } catch (error) {
+      console.error('Erro ao carregar dados do dashboard:', error);
+      setDashboardError('Não foi possível carregar os dados. Tente novamente.');
+    } finally {
+      setDashboardLoading(false);
+    }
+  };
+  
+  // Carregar dados do dashboard quando a aba estiver ativa
+  useEffect(() => {
+    loadDashboardData();
+    
+    // Configurar atualização automática a cada 30 segundos
+    const intervalId = setInterval(() => {
+      loadDashboardData();
+    }, 30000);
+    
+    return () => clearInterval(intervalId);
+  }, [activeTab]);
 
   const handleLogout = async () => {
     try {
@@ -217,9 +265,55 @@ export default function AdminPage() {
         <div className="mx-auto max-w-7xl">
           {activeTab === 'dashboard' && (
             <div className="rounded-lg border border-slate-800 bg-slate-900 p-6 shadow-md">
-              <h2 className="mb-6 text-xl font-semibold text-white">Visão Geral</h2>
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-semibold text-white">Visão Geral</h2>
+                
+                <button 
+                  onClick={loadDashboardData}
+                  disabled={dashboardLoading}
+                  className="flex items-center space-x-1 rounded-md bg-slate-800 px-3 py-2 text-sm text-white hover:bg-slate-700 disabled:opacity-50"
+                >
+                  {dashboardLoading ? (
+                    <svg className="h-4 w-4 animate-spin text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  ) : (
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                  )}
+                  <span>Atualizar</span>
+                </button>
+              </div>
               
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+              {dashboardError && (
+                <div className="mb-6 rounded-md bg-red-900/30 p-3 text-sm text-red-300 border border-red-800">
+                  {dashboardError}
+                </div>
+              )}
+              
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="rounded-lg border border-slate-800 bg-slate-800/50 p-4">
+                  <div className="flex items-center">
+                    <div className="mr-4 flex h-12 w-12 items-center justify-center rounded-lg bg-red-500/20 text-red-500">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-slate-400">Mesas Ocupadas</p>
+                      <p className="text-2xl font-bold text-white">
+                        {dashboardLoading ? (
+                          <span className="inline-block h-8 w-16 animate-pulse rounded bg-slate-700"></span>
+                        ) : (
+                          `${mesas.filter(mesa => mesa.status === MesaStatus.OCUPADA).length}/${mesas.length}`
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                
                 <div className="rounded-lg border border-slate-800 bg-slate-800/50 p-4">
                   <div className="flex items-center">
                     <div className="mr-4 flex h-12 w-12 items-center justify-center rounded-lg bg-amber-500/20 text-amber-500">
@@ -228,51 +322,145 @@ export default function AdminPage() {
                       </svg>
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-slate-400">Pedidos Hoje</p>
-                      <p className="text-2xl font-bold text-white">500</p>
+                      <p className="text-sm font-medium text-slate-400">Pedidos em Andamento</p>
+                      <p className="text-2xl font-bold text-white">
+                        {dashboardLoading ? (
+                          <span className="inline-block h-8 w-16 animate-pulse rounded bg-slate-700"></span>
+                        ) : (
+                          pedidos.filter(p => p.status === StatusPedido.EM_ANDAMENTO).length
+                        )}
+                      </p>
                     </div>
                   </div>
                 </div>
                 
                 <div className="rounded-lg border border-slate-800 bg-slate-800/50 p-4">
                   <div className="flex items-center">
-                    <div className="mr-4 flex h-12 w-12 items-center justify-center rounded-lg bg-emerald-500/20 text-emerald-500">
+                    <div className="mr-4 flex h-12 w-12 items-center justify-center rounded-lg bg-blue-500/20 text-blue-500">
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                       </svg>
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-slate-400">Faturamento Hoje</p>
-                      <p className="text-2xl font-bold text-white">R$ 0,00</p>
+                      <p className="text-sm font-medium text-slate-400">Pedidos Aguardando</p>
+                      <p className="text-2xl font-bold text-white">
+                        {dashboardLoading ? (
+                          <span className="inline-block h-8 w-16 animate-pulse rounded bg-slate-700"></span>
+                        ) : (
+                          pedidos.filter(p => p.status === StatusPedido.ABERTO).length
+                        )}
+                      </p>
                     </div>
                   </div>
                 </div>
-                
-                <div className="rounded-lg border border-slate-800 bg-slate-800/50 p-4">
-                  <div className="flex items-center">
-                    <div className="mr-4 flex h-12 w-12 items-center justify-center rounded-lg bg-amber-500/20 text-amber-500">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
-                      </svg>
+              </div>
+              
+              <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2">
+                {/* Lista de mesas ocupadas */}
+                <div className="rounded-lg border border-slate-800 bg-slate-800/30 p-4">
+                  <h3 className="mb-4 text-lg font-medium text-slate-200">Mesas Ocupadas</h3>
+                  
+                  {dashboardLoading ? (
+                    <div className="space-y-3">
+                      {[1, 2, 3].map(i => (
+                        <div key={i} className="h-12 w-full animate-pulse rounded bg-slate-800"></div>
+                      ))}
                     </div>
-                    <div>
-                      <p className="text-sm font-medium text-slate-400">Ticket Médio</p>
-                      <p className="text-2xl font-bold text-white">R$ 00,00</p>
+                  ) : mesas.filter(mesa => mesa.status === MesaStatus.OCUPADA).length === 0 ? (
+                    <p className="text-center py-4 text-slate-400">Nenhuma mesa ocupada no momento</p>
+                  ) : (
+                    <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
+                      {mesas
+                        .filter(mesa => mesa.status === MesaStatus.OCUPADA)
+                        .map(mesa => (
+                          <div 
+                            key={mesa.id} 
+                            className="flex items-center justify-between rounded-md border border-slate-700 bg-slate-800 p-3"
+                          >
+                            <div className="flex items-center">
+                              <div className="h-2 w-2 rounded-full bg-red-500 mr-3"></div>
+                              <span className="font-medium text-white">Mesa {mesa.id}</span>
+                            </div>
+                            <button
+                              onClick={() => {
+                                setActiveTab('mesas');
+                              }}
+                              className="text-xs text-slate-400 hover:text-white"
+                            >
+                              Ver detalhes
+                            </button>
+                          </div>
+                        ))}
                     </div>
+                  )}
+                  
+                  <div className="mt-4 flex justify-end">
+                    <button
+                      onClick={() => setActiveTab('mesas')}
+                      className="text-sm text-amber-500 hover:text-amber-400"
+                    >
+                      Ver todas as mesas →
+                    </button>
                   </div>
                 </div>
                 
-                <div className="rounded-lg border border-slate-800 bg-slate-800/50 p-4">
-                  <div className="flex items-center">
-                    <div className="mr-4 flex h-12 w-12 items-center justify-center rounded-lg bg-amber-500/20 text-amber-500">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                      </svg>
+                {/* Lista de pedidos em andamento */}
+                <div className="rounded-lg border border-slate-800 bg-slate-800/30 p-4">
+                  <h3 className="mb-4 text-lg font-medium text-slate-200">Pedidos Ativos</h3>
+                  
+                  {dashboardLoading ? (
+                    <div className="space-y-3">
+                      {[1, 2, 3].map(i => (
+                        <div key={i} className="h-12 w-full animate-pulse rounded bg-slate-800"></div>
+                      ))}
                     </div>
-                    <div>
-                      <p className="text-sm font-medium text-slate-400">Mesas Ocupadas</p>
-                      <p className="text-2xl font-bold text-white">0/15</p>
+                  ) : pedidos.length === 0 ? (
+                    <p className="text-center py-4 text-slate-400">Nenhum pedido ativo no momento</p>
+                  ) : (
+                    <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
+                      {pedidos.map(pedido => {
+                        const statusColor = 
+                          pedido.status === StatusPedido.ABERTO 
+                            ? 'bg-blue-500' 
+                            : pedido.status === StatusPedido.EM_ANDAMENTO 
+                              ? 'bg-amber-500' 
+                              : 'bg-emerald-500';
+                        
+                        return (
+                          <div 
+                            key={pedido.id} 
+                            className="flex items-center justify-between rounded-md border border-slate-700 bg-slate-800 p-3"
+                          >
+                            <div className="flex items-center">
+                              <div className={`h-2 w-2 rounded-full ${statusColor} mr-3`}></div>
+                              <div>
+                                <span className="font-medium text-white">Mesa {pedido.mesa_id}</span>
+                                <span className="ml-2 text-xs text-slate-400">
+                                  {pedido.itens?.length || 0} itens
+                                </span>
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => {
+                                setActiveTab('pedidos');
+                              }}
+                              className="text-xs text-slate-400 hover:text-white"
+                            >
+                              Ver detalhes
+                            </button>
+                          </div>
+                        );
+                      })}
                     </div>
+                  )}
+                  
+                  <div className="mt-4 flex justify-end">
+                    <button
+                      onClick={() => setActiveTab('pedidos')}
+                      className="text-sm text-amber-500 hover:text-amber-400"
+                    >
+                      Ver todos os pedidos →
+                    </button>
                   </div>
                 </div>
               </div>
@@ -292,20 +480,22 @@ export default function AdminPage() {
                   >
                     <span className="block text-sm font-medium text-amber-400 group-hover:text-amber-300">Gerenciar Mesas</span>
                   </button>
-                  <button className="group rounded-lg border border-slate-800 bg-slate-800/50 p-4 transition-colors hover:bg-slate-800">
-                    <span className="block text-sm font-medium text-amber-400 group-hover:text-amber-300">Relatório do Dia</span>
+                  <button 
+                    onClick={() => setActiveTab('cardapio')}
+                    className="group rounded-lg border border-slate-800 bg-slate-800/50 p-4 transition-colors hover:bg-slate-800"
+                  >
+                    <span className="block text-sm font-medium text-amber-400 group-hover:text-amber-300">Consultar Cardápio</span>
                   </button>
                 </div>
               </div>
             </div>
           )}
-
-          {activeTab === 'cardapio' && <Cardapio />}    
+          
           {activeTab === 'mesas' && <Mesa />}
           {activeTab === 'pedidos' && <Pedido />}
+          {activeTab === 'cardapio' && <Cardapio />}
         </div>
       </main>
-    
     </div>
   );
 } 
