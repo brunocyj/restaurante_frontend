@@ -80,6 +80,7 @@ export const updatePedido = async (
   pedidoData: {
     status?: StatusPedido;
     observacao_geral?: string;
+    mesa_id?: string;
   }
 ) => {
   try {

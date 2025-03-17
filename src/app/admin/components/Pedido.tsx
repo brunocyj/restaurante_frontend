@@ -1140,7 +1140,7 @@ export default function Pedido() {
                       name="mesa_id"
                       value={currentPedido.mesa_id}
                       onChange={handleInputChange}
-                      disabled={modalMode === 'visualizar' || modalMode === 'editar'}
+                      disabled={modalMode === 'visualizar'}
                       className="mt-1 block w-full rounded-md border-slate-700 bg-slate-800 py-2 text-white shadow-sm focus:border-amber-500 focus:ring-amber-500 sm:text-sm disabled:opacity-70"
                     >
                       <option value="">Selecione uma mesa</option>
