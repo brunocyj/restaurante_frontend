@@ -625,7 +625,8 @@ export default function Pedido() {
         // Atualizar apenas os campos permitidos
         const pedidoAtualizado = await updatePedido(currentPedido.id, {
           status: currentPedido.status,
-          observacao_geral: currentPedido.observacao_geral
+          observacao_geral: currentPedido.observacao_geral,
+          mesa_id: currentPedido.mesa_id  
         });
         
         setPedidos(prev => 

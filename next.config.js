@@ -3,6 +3,20 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  images: {
+    domains: ['meizizi.com.br', 'res.cloudinary.com', 'images.unsplash.com', 'via.placeholder.com', 'localhost'],
+    formats: ['image/avif', 'image/webp'],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**',
+      },
+      {
+        protocol: 'http',
+        hostname: '**',
+      },
+    ],
+  },
   async rewrites() {
     return [
       {
