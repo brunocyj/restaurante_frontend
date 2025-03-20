@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { logout, getUserInfo } from '@/lib/auth';
 import { getMesas, MesaStatus, Mesa as MesaType } from '@/lib/mesa';
 import { getPedidosPorStatus, StatusPedido, Pedido as PedidoType } from '@/lib/pedido';
+import NotificacaoPanel from '@/components/NotificacaoPanel';
+import { Toaster } from 'react-hot-toast';
 
 import Cardapio from './components/Cardapio';
 import Mesa from './components/Mesa';
@@ -119,6 +121,7 @@ export default function AdminPage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-950">
+      <Toaster position="top-right" />
       <header className="border-b border-slate-800 bg-slate-900">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
           <h1 className="text-2xl font-bold text-white">RESTAURANTE MEIZIZI</h1>
@@ -373,38 +376,22 @@ export default function AdminPage() {
                       {mesas
                         .filter(mesa => mesa.status === MesaStatus.OCUPADA)
                         .map(mesa => (
-                          <div 
-                            key={mesa.id} 
-                            className="flex items-center justify-between rounded-md border border-slate-700 bg-slate-800 p-3"
-                          >
-                            <div className="flex items-center">
-                              <div className="h-2 w-2 rounded-full bg-red-500 mr-3"></div>
-                              <span className="font-medium text-white">Mesa {mesa.id}</span>
+                          <div key={mesa.id} className="rounded-md border border-slate-700 bg-slate-800 p-3">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="font-medium text-white">Mesa {mesa.id}</p>
+                              </div>
+                              <span className="px-2 py-1 text-xs font-semibold rounded-full bg-red-500/20 text-red-400">
+                                Ocupada
+                              </span>
                             </div>
-                            <button
-                              onClick={() => {
-                                setActiveTab('mesas');
-                              }}
-                              className="text-xs text-slate-400 hover:text-white"
-                            >
-                              Ver detalhes
-                            </button>
                           </div>
                         ))}
                     </div>
                   )}
-                  
-                  <div className="mt-4 flex justify-end">
-                    <button
-                      onClick={() => setActiveTab('mesas')}
-                      className="text-sm text-amber-500 hover:text-amber-400"
-                    >
-                      Ver todas as mesas →
-                    </button>
-                  </div>
                 </div>
                 
-                {/* Lista de pedidos em andamento */}
+                {/* Lista de pedidos ativos */}
                 <div className="rounded-lg border border-slate-800 bg-slate-800/30 p-4">
                   <h3 className="mb-4 text-lg font-medium text-slate-200">Pedidos Ativos</h3>
                   
@@ -425,68 +412,37 @@ export default function AdminPage() {
                             : pedido.status === StatusPedido.EM_ANDAMENTO 
                               ? 'bg-amber-500' 
                               : 'bg-emerald-500';
-                        
+                              
                         return (
-                          <div 
-                            key={pedido.id} 
-                            className="flex items-center justify-between rounded-md border border-slate-700 bg-slate-800 p-3"
-                          >
-                            <div className="flex items-center">
-                              <div className={`h-2 w-2 rounded-full ${statusColor} mr-3`}></div>
+                          <div key={pedido.id} className="rounded-md border border-slate-700 bg-slate-800 p-3">
+                            <div className="flex items-center justify-between">
                               <div>
-                                <span className="font-medium text-white">Mesa {pedido.mesa_id}</span>
-                                <span className="ml-2 text-xs text-slate-400">
-                                  {pedido.itens?.length || 0} itens
-                                </span>
+                                <div className="flex items-center space-x-2">
+                                  <span className={`h-2 w-2 rounded-full ${statusColor}`}></span>
+                                  <p className="font-medium text-white">Mesa {pedido.mesa_id}</p>
+                                </div>
+                                <p className="text-sm text-slate-400">
+                                  {pedido.status === StatusPedido.ABERTO ? 'Aguardando' : 'Em andamento'}
+                                </p>
                               </div>
+                              <button
+                                className="rounded-md bg-amber-500 px-3 py-1 text-sm text-white hover:bg-amber-600"
+                                onClick={() => setActiveTab('pedidos')}
+                              >
+                                Gerenciar
+                              </button>
                             </div>
-                            <button
-                              onClick={() => {
-                                setActiveTab('pedidos');
-                              }}
-                              className="text-xs text-slate-400 hover:text-white"
-                            >
-                              Ver detalhes
-                            </button>
                           </div>
                         );
                       })}
                     </div>
                   )}
-                  
-                  <div className="mt-4 flex justify-end">
-                    <button
-                      onClick={() => setActiveTab('pedidos')}
-                      className="text-sm text-amber-500 hover:text-amber-400"
-                    >
-                      Ver todos os pedidos →
-                    </button>
-                  </div>
                 </div>
               </div>
               
+              {/* Painel de Notificações */}
               <div className="mt-8">
-                <h3 className="mb-4 text-lg font-medium text-slate-200">Ações rápidas</h3>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  <button 
-                    onClick={() => setActiveTab('pedidos')}
-                    className="group rounded-lg border border-slate-800 bg-slate-800/50 p-4 transition-colors hover:bg-slate-800"
-                  >
-                    <span className="block text-sm font-medium text-amber-400 group-hover:text-amber-300">Novo Pedido</span>
-                  </button>
-                  <button 
-                    onClick={() => setActiveTab('mesas')}
-                    className="group rounded-lg border border-slate-800 bg-slate-800/50 p-4 transition-colors hover:bg-slate-800"
-                  >
-                    <span className="block text-sm font-medium text-amber-400 group-hover:text-amber-300">Gerenciar Mesas</span>
-                  </button>
-                  <button 
-                    onClick={() => setActiveTab('cardapio')}
-                    className="group rounded-lg border border-slate-800 bg-slate-800/50 p-4 transition-colors hover:bg-slate-800"
-                  >
-                    <span className="block text-sm font-medium text-amber-400 group-hover:text-amber-300">Consultar Cardápio</span>
-                  </button>
-                </div>
+                <NotificacaoPanel />
               </div>
             </div>
           )}

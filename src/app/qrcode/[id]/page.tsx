@@ -20,7 +20,9 @@ import {
   StatusPedido,
   Pedido
 } from '@/lib/pedido';
+import { chamarAtendente as chamarAtendenteApi } from '@/lib/notificacao';
 import Image from 'next/image';
+import { toast, Toaster } from 'react-hot-toast';
 
 // Interface para o carrinho de compras
 interface ItemCarrinho {
@@ -334,33 +336,21 @@ export default function QRCodePage() {
     try {
       setChamandoAtendente(true);
       
-      // Simular chamado de atendente (aqui você implementaria a lógica real)
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Chamar o atendente usando a API
+      const resultado = await chamarAtendenteApi(mesaId);
       
-      // Mostrar mensagem de sucesso
-      setMensagem('Atendente chamado com sucesso!');
-      setTipoMensagem('sucesso');
-      setShowMensagem(true);
-      
-      // Esconder mensagem após 3 segundos
-      setTimeout(() => {
-        setShowMensagem(false);
-      }, 3000);
-      
-      // Fechar modal de ações
-      setShowAcoesModal(false);
+      if (resultado.success) {
+        // Mostrar mensagem de sucesso
+        toast.success('Atendente chamado com sucesso!');
+        
+        // Fechar modal de ações
+        setShowAcoesModal(false);
+      } else {
+        throw new Error('Falha ao chamar atendente');
+      }
     } catch (error) {
       console.error('Erro ao chamar atendente:', error);
-      
-      // Mostrar mensagem de erro
-      setMensagem('Erro ao chamar atendente. Tente novamente.');
-      setTipoMensagem('erro');
-      setShowMensagem(true);
-      
-      // Esconder mensagem após 3 segundos
-      setTimeout(() => {
-        setShowMensagem(false);
-      }, 3000);
+      toast.error('Erro ao chamar atendente. Tente novamente.');
     } finally {
       setChamandoAtendente(false);
     }
@@ -454,6 +444,9 @@ export default function QRCodePage() {
   
   return (
     <div className="min-h-screen bg-slate-950 pb-20">
+      {/* Toast notifications */}
+      <Toaster position="top-center" />
+      
       {/* Cabeçalho */}
       <header className="sticky top-0 z-10 border-b border-slate-800 bg-slate-900 shadow-md">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4">
@@ -961,16 +954,32 @@ export default function QRCodePage() {
                   <div key={index} className="rounded-md border border-slate-800 bg-slate-800/50 p-3">
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
-                        <p className="font-medium text-white">{item.produto?.nome || 'Produto'}</p>
-                        <div className="mt-1 flex text-sm text-slate-400">
-                          <p className="mr-4">Qtd: {item.quantidade}</p>
-                          <p>Valor: {formatarPreco((item.produto?.preco || 0) * item.quantidade)}</p>
-                        </div>
-                        {item.observacoes && (
-                          <p className="mt-1 text-xs text-slate-500">
-                            Obs: {item.observacoes}
-                          </p>
-                        )}
+                        {(() => {
+                          // Buscar informações do produto na lista de produtos
+                          const produtoEncontrado = produtos.find(p => p.id === item.produto_id);
+                          
+                          // Usar informações do produto se disponível
+                          const nome = item.produto?.nome || produtoEncontrado?.nome || `Produto ${item.produto_id}`;
+                          const preco = item.produto?.preco || produtoEncontrado?.preco || 0;
+                          
+                          return (
+                            <>
+                              <p className="font-medium text-white">{nome}</p>
+                              <div className="mt-1 flex text-sm text-slate-400">
+                                <p className="mr-4">Qtd: {item.quantidade}</p>
+                                <p>Valor unitário: {formatarPreco(preco)}</p>
+                              </div>
+                              <p className="mt-1 text-sm text-amber-500">
+                                Total: {formatarPreco(preco * item.quantidade)}
+                              </p>
+                              {item.observacoes && (
+                                <p className="mt-1 text-xs text-slate-500">
+                                  Obs: {item.observacoes}
+                                </p>
+                              )}
+                            </>
+                          );
+                        })()}
                       </div>
                     </div>
                   </div>
@@ -991,7 +1000,15 @@ export default function QRCodePage() {
               <div className="flex items-center justify-between mb-4">
                 <p className="text-lg font-medium text-white">Total</p>
                 <p className="text-lg font-bold text-amber-500">
-                  {formatarPreco(pedidoAtual.valor_total)}
+                  {formatarPreco(
+                    pedidoAtual.itens.reduce((total: number, item: any) => {
+                      // Encontrar o produto na lista de produtos
+                      const produtoEncontrado = produtos.find(p => p.id === item.produto_id);
+                      // Usar o preço do produto encontrado ou do item, ou zero como fallback
+                      const preco = item.produto?.preco || produtoEncontrado?.preco || 0;
+                      return total + (preco * item.quantidade);
+                    }, 0)
+                  )}
                 </p>
               </div>
               
