@@ -71,6 +71,27 @@ export default function QRCodePage() {
   const [tipoMensagem, setTipoMensagem] = useState<'sucesso' | 'erro'>('sucesso');
   const [showMensagem, setShowMensagem] = useState(false);
   
+  // Efeito para garantir que uma categoria seja selecionada automaticamente
+  useEffect(() => {
+    // Se já temos categorias e tipo de cardápio definido
+    if (Object.keys(categoriasAgrupadas).length > 0 && tipoCardapio) {
+      // Obter categorias filtradas específicas para o tipo de cardápio atual
+      const categoriasFiltradas = filtrarCategorias();
+      console.log("Categorias filtradas para cardápio", tipoCardapio.nome, ":", categoriasFiltradas.map(c => c.nome));
+      
+      // Verificar se a categoria ativa atual não existe nas categorias filtradas
+      const categoriaAtivaValida = categoriaAtiva && categoriasFiltradas.some(c => c.id === categoriaAtiva);
+      
+      // Se não temos categoria ativa ou a atual não é válida para este tipo de cardápio
+      if (!categoriaAtiva || !categoriaAtivaValida) {
+        if (categoriasFiltradas.length > 0 && categoriasFiltradas[0].id) {
+          console.log("Selecionando categoria automaticamente:", categoriasFiltradas[0].nome);
+          setCategoriaAtiva(categoriasFiltradas[0].id);
+        }
+      }
+    }
+  }, [categoriasAgrupadas, tipoCardapio, categoriaAtiva]);
+  
   // Carregar dados da mesa e do cardápio
   useEffect(() => {
     async function carregarDados() {
@@ -231,7 +252,7 @@ export default function QRCodePage() {
     });
   };
   
-  // Função para filtrar categorias com base no tipo de cardápio da mesa
+  // Filtrar categorias com base no tipo de cardápio
   const filtrarCategorias = () => {
     if (!tipoCardapio) return [];
     
@@ -401,6 +422,9 @@ export default function QRCodePage() {
     }
   };
   
+  // Filtrar categorias com base no tipo de cardápio
+  const categoriasFiltradas = filtrarCategorias();
+  
   // Renderizar o estado de carregamento
   if (isLoading) {
     return (
@@ -438,9 +462,6 @@ export default function QRCodePage() {
       </div>
     );
   }
-  
-  // Filtrar categorias com base no tipo de cardápio
-  const categoriasFiltradas = filtrarCategorias();
   
   return (
     <div className="min-h-screen bg-slate-950 pb-20">
