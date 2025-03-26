@@ -756,6 +756,11 @@ export default function Pedido() {
     return produto ? produto.nome : 'Produto não encontrado';
   };
 
+  const getProdutoDescricao = (id: string) => {
+    const produto = produtos.find(p => p.id === id);
+    return produto?.descricao || '';
+  };
+
   const handleFinalizarEdicao = async () => {
     try {
       console.log('===== INÍCIO DA FINALIZAÇÃO DE EDIÇÃO =====');
@@ -1222,9 +1227,14 @@ placeholder="Observações gerais do pedido"
           <p className="font-medium text-white">
             {item.produto?.nome || getProdutoNome(item.produto_id)}
           </p>
+          {getProdutoDescricao(item.produto_id) && (
+            <p className="mt-1 text-xs text-slate-400">
+              {getProdutoDescricao(item.produto_id)}
+            </p>
+          )}
           <div className="mt-1 flex text-sm text-slate-400">
             <p className="mr-4">Qtd: {item.quantidade}</p>
-                                  <p>Valor: {formatarPreco((item.preco_unitario || 0) * item.quantidade)}</p>
+            <p>Valor: {formatarPreco((item.preco_unitario || 0) * item.quantidade)}</p>
           </div>
           {item.observacoes && (
             <p className="mt-1 text-xs text-slate-500">
