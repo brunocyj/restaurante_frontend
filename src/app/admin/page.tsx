@@ -7,6 +7,7 @@ import { getMesas, MesaStatus, Mesa as MesaType } from '@/lib/mesa';
 import { getPedidosPorStatus, StatusPedido, Pedido as PedidoType } from '@/lib/pedido';
 import NotificacaoPanel from '@/components/NotificacaoPanel';
 import { Toaster } from 'react-hot-toast';
+import Link from 'next/link';
 
 import Cardapio from './components/Cardapio';
 import Mesa from './components/Mesa';
@@ -126,6 +127,12 @@ export default function AdminPage() {
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
           <h1 className="text-2xl font-bold text-white">RESTAURANTE MEIZIZI</h1>
           <div className="flex items-center space-x-4">
+            <Link
+              href="/admin/impressao"
+              className="rounded-md bg-amber-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-slate-900"
+            >
+              Impressão
+            </Link>
             <span className="text-sm text-slate-400">
               Olá, <span className="font-medium text-slate-200">{userData?.username}</span>
             </span>
