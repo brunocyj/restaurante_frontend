@@ -82,6 +82,10 @@ export default function TesteImpressao() {
     return mesa ? `Mesa ${mesa.id}` : mesaId;
   };
 
+  const alinharDireita = (texto: string, largura: number): string => {
+    return ' '.repeat(Math.max(0, largura - texto.length)) + texto;
+  };
+
   const enviarParaImpressao = () => {
     if (!pedidoSelecionado) return;
 
@@ -113,24 +117,29 @@ export default function TesteImpressao() {
       linhas.push('QTD NOME                           VALOR');
       linhas.push('-'.repeat(larguraMaxima));
       
+      // Definição explícita da largura de cada coluna em caracteres
+      const LARGURA_TOTAL = 35;    // Caracteres por linha
+      const LARGURA_QTD = 3;       // Espaço para quantidade
+      const LARGURA_VALOR = 7;     // Reduzido de 10 para 7 (3 caracteres a menos à direita)
+      const LARGURA_DESCRICAO = LARGURA_TOTAL - LARGURA_QTD - LARGURA_VALOR;
+      
       // Itens
       pedidoSelecionado.itens.forEach(item => {
         const nome = getNomeProduto(item.produto_id);
         const descricao = getDescricaoProduto(item.produto_id);
-        const valorUnitario = item.preco_unitario || 0;
-        const valorTotal = valorUnitario * item.quantidade;
+        const valorTotal = (item.preco_unitario || 0) * item.quantidade;
+        const valorFormatado = formatarPreco(valorTotal);
         
-        // Formatar o item
-        const qtdStr = item.quantidade.toString().padEnd(3);
-        const valorStr = formatarPreco(valorTotal).padStart(10);
+        // Largura efetiva para o nome (pode ser um pouco maior para compensar visualmente)
+        const larguraEfetivaNome = LARGURA_DESCRICAO - 2; // -2 para dar um espaço visual entre nome e valor
         
-        // Truncar nome se for muito longo
-        const espacoDisponivel = larguraMaxima - 3 - 10; // 3 para qtd, 10 para valor
-        const nomeFormatado = nome.length > espacoDisponivel 
-          ? nome.substring(0, espacoDisponivel - 3) + '...' 
-          : nome.padEnd(espacoDisponivel);
+        // Linha principal do item
+        const qtdStr = item.quantidade.toString().padEnd(LARGURA_QTD);
+        const nomesTruncado = nome.length > larguraEfetivaNome ? nome.substring(0, larguraEfetivaNome - 3) + '...' : nome.padEnd(larguraEfetivaNome);
+        const valorStr = alinharDireita(valorFormatado, LARGURA_VALOR);
         
-        linhas.push(`${qtdStr}${nomeFormatado}${valorStr}`);
+        // Combina os elementos com o espaçamento adequado
+        linhas.push(qtdStr + nomesTruncado.padEnd(larguraEfetivaNome) + '  ' + valorStr);
         
         // Descrição e observações em linhas separadas com recuo
         if (descricao) {
