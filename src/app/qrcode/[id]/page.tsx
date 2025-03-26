@@ -29,7 +29,9 @@ interface ItemCarrinho {
   produto_id: string;
   quantidade: number;
   observacoes?: string;
-  produto: Produto;
+  produto: Produto & {
+    descricao?: string;
+  };
 }
 
 export default function QRCodePage() {
@@ -116,6 +118,12 @@ export default function QRCodePage() {
           getProdutos()
         ]);
         
+        // Verificar o formato dos produtos retornados pela API
+        if (produtosData.length > 0) {
+          console.log('Amostra de produto da API:', produtosData[0]);
+          console.log('Chaves do produto:', Object.keys(produtosData[0]));
+        }
+        
         // Filtrar apenas categorias e produtos ativos
         const categoriasAtivas = categoriasData.filter(cat => cat.ativo);
         const produtosAtivos = produtosData.filter(prod => prod.ativo);
@@ -191,6 +199,11 @@ export default function QRCodePage() {
   // Função para adicionar item ao carrinho
   const adicionarAoCarrinho = () => {
     if (!produtoModal) return;
+    
+    // Verificar a estrutura do produtoModal
+    console.log('ProdutoModal completo:', produtoModal);
+    console.log('ProdutoModal tem descricao?', 'descricao' in produtoModal);
+    console.log('Valor da descricao no produtoModal:', produtoModal.descricao);
     
     // Verificar se o produto já está no carrinho
     const itemExistente = carrinho.find(item => item.produto_id === produtoModal.id);
@@ -272,7 +285,16 @@ export default function QRCodePage() {
   // Obter produtos da categoria ativa
   const getProdutosPorCategoria = (categoriaId: string | null) => {
     if (!categoriaId) return [];
-    return produtos.filter(produto => produto.categoria_id === categoriaId);
+    const produtosFiltrados = produtos.filter(produto => produto.categoria_id === categoriaId);
+    
+    // Verificar a estrutura dos produtos
+    if (produtosFiltrados.length > 0) {
+      console.log('Exemplo de produto:', produtosFiltrados[0]);
+      console.log('Propriedade descricao existe?', 'descricao' in produtosFiltrados[0]);
+      console.log('Valor da descricao:', produtosFiltrados[0].descricao);
+    }
+    
+    return produtosFiltrados;
   };
   
   // Função para enviar pedido
@@ -551,8 +573,10 @@ export default function QRCodePage() {
                 <div className="flex-1">
                   <h3 className="text-lg font-medium text-white">{produto.nome}</h3>
                   
-                  {produto.descricao && (
-                    <p className="mt-1 text-sm text-slate-400 line-clamp-2">{produto.descricao}</p>
+                  {produto && 'descricao' in produto && produto['descricao'] && (
+                    <p className="mt-1 text-sm text-slate-400 line-clamp-2">
+                      {produto['descricao']}
+                    </p>
                   )}
                   
                   <div className="mt-3">
@@ -683,8 +707,10 @@ export default function QRCodePage() {
                 </div>
               )}
               
-              {produtoModal.descricao && (
-                <p className="mt-3 text-sm text-slate-400">{produtoModal.descricao}</p>
+              {produtoModal && 'descricao' in produtoModal && produtoModal['descricao'] && (
+                <p className="mt-3 text-sm text-slate-400">
+                  {produtoModal['descricao']}
+                </p>
               )}
               
               <p className="mt-3 text-lg font-bold text-amber-500">{formatarPreco(produtoModal.preco)}</p>
@@ -777,6 +803,11 @@ export default function QRCodePage() {
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
                           <p className="font-medium text-white">{item.produto.nome}</p>
+                          {item.produto && 'descricao' in item.produto && item.produto['descricao'] && (
+                            <p className="text-xs text-slate-400 mt-1 mb-1">
+                              {item.produto['descricao']}
+                            </p>
+                          )}
                           <div className="mt-1 flex text-sm text-slate-400">
                             <p className="mr-4">Qtd: {item.quantidade}</p>
                             <p>Valor: {formatarPreco(item.produto.preco * item.quantidade)}</p>
@@ -990,11 +1021,30 @@ export default function QRCodePage() {
                           
                           // Usar informações do produto se disponível
                           const nome = item.produto?.nome || produtoEncontrado?.nome || `Produto ${item.produto_id}`;
+                          
+                          // Verificar qual descrição está disponível
+                          let descricao = '';
+                          try {
+                            if (item.produto && 'descricao' in item.produto) {
+                              descricao = String(item.produto['descricao'] || '');
+                            } else if (produtoEncontrado && 'descricao' in produtoEncontrado) {
+                              descricao = String(produtoEncontrado['descricao'] || '');
+                            }
+                          } catch (e) {
+                            console.error('Erro ao acessar descricao:', e);
+                            descricao = '';
+                          }
+                          
                           const preco = item.produto?.preco || produtoEncontrado?.preco || 0;
                           
                           return (
                             <>
                               <p className="font-medium text-white">{nome}</p>
+                              {descricao && (
+                                <p className="text-xs text-slate-400 mt-1 mb-1">
+                                  {descricao}
+                                </p>
+                              )}
                               <div className="mt-1 flex text-sm text-slate-400">
                                 <p className="mr-4">Qtd: {item.quantidade}</p>
                                 <p>Valor unitário: {formatarPreco(preco)}</p>

@@ -210,7 +210,16 @@ export default function NotificacaoPanel() {
       <p>
         <span className="font-medium">{item.quantidade}x</span>{' '}
         {produto 
-          ? <span className="text-white">{produto.nome}</span> 
+          ? (
+            <>
+              <span className="text-white">{produto.nome}</span>
+              {produto.descricao && (
+                <span className="text-slate-400 text-xs ml-1">
+                  ({produto.descricao})
+                </span>
+              )}
+            </>
+          )
           : <span className="text-slate-400">Produto {item.produto_id?.substring(0, 8)}</span>
         }
         {item.observacoes && (
