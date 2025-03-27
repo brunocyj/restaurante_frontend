@@ -219,6 +219,149 @@ export default function NotificacaoPanel() {
     router.push(`/admin/impressao?pedidoId=${pedidoId}&modo=todas`);
   };
 
+  // Adicionar esta função após o handleRemoveNotification
+  const imprimirItensNotificacao = (notificacao: Notificacao) => {
+    // Extrair os itens da notificação
+    const itensNotificacao = notificacao.items?.flatMap(grupo => 
+      grupo.items?.map(item => ({
+        produto_id: item.produto_id,
+        quantidade: item.quantidade,
+        observacoes: item.observacoes,
+        // Adicionar outros dados necessários para a impressão
+        preco_unitario: produtosCache[item.produto_id]?.preco || 0
+      })) || []
+    ) || [];
+
+    if (itensNotificacao.length === 0) {
+      toast.error("Não há itens para imprimir nesta notificação");
+      return;
+    }
+
+    // Informações básicas
+    const nomeRestaurante = '美滋滋烤肉 青岛';
+    const endereco = 'RUA TAQUARI 934 MOOCA';
+    const mesa = notificacao.content.mesa_id ? 
+      `Mesa ${mesasCache[notificacao.content.mesa_id]?.id || notificacao.content.mesa_id}` : 
+      'Mesa não identificada';
+    const pedidoId = notificacao.content.pedido_id || '';
+    
+    // Criar conteúdo para impressão
+    const criarConteudoTermico = () => {
+      const linhas = [];
+      const larguraMaxima = 42; // Largura padrão para impressoras térmicas de 80mm
+      
+      // Função para centralizar texto
+      const centralizar = (texto: string) => {
+        const espacos = Math.max(0, Math.floor((larguraMaxima - texto.length) / 2));
+        return ' '.repeat(espacos) + texto;
+      };
+      
+      // Cabeçalho
+      linhas.push(centralizar(nomeRestaurante));
+      linhas.push(centralizar(endereco));
+      linhas.push('-'.repeat(larguraMaxima));
+      
+      // Informações do pedido
+      linhas.push(`${mesa}`);
+      if (pedidoId) linhas.push(`Pedido: #${pedidoId.substring(0, 8)}`);
+      
+      // Data e hora
+      const dataAtual = new Date();
+      const dataFormatada = dataAtual.toLocaleString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        timeZone: 'America/Sao_Paulo' // Fuso horário brasileiro
+      });
+      
+      linhas.push(`Data/Hora: ${dataFormatada}`);
+      linhas.push('-'.repeat(larguraMaxima));
+      
+      // Título da seção
+      linhas.push(centralizar('*** NOVOS ITENS ADICIONADOS ***'));
+      linhas.push('-'.repeat(larguraMaxima));
+      
+      // Itens
+      linhas.push('QTD NOME');
+      
+      itensNotificacao.forEach(item => {
+        const produto = produtosCache[item.produto_id];
+        if (!produto) return;
+        
+        // Linha do item
+        linhas.push(`${item.quantidade}x ${produto.nome}`);
+        
+        // Descrição do produto, se houver
+        if (produto.descricao) {
+          linhas.push(`  ${produto.descricao}`);
+        }
+        
+        // Observação, se houver
+        if (item.observacoes) {
+          linhas.push(`  Obs: ${item.observacoes}`);
+        }
+      });
+      
+      linhas.push('-'.repeat(larguraMaxima));
+      linhas.push(centralizar('*** PEDIDO PARA COZINHA ***'));
+      linhas.push('\n\n\n'); // Espaço para corte
+      
+      return linhas.join('\n');
+    };
+    
+    // Criar iframe para impressão
+    const conteudo = criarConteudoTermico();
+    const iframeImpressao = document.createElement('iframe');
+    iframeImpressao.style.display = 'none';
+    document.body.appendChild(iframeImpressao);
+    
+    const doc = iframeImpressao.contentWindow?.document;
+    if (doc) {
+      doc.open();
+      doc.write('<html><head><title>Impressão Novos Itens</title>');
+      doc.write('<style>');
+      doc.write(`
+        @page {
+          size: 80mm auto;
+          margin: 0mm;
+        }
+        body {
+          margin: 0;
+          padding: 0;
+          font-family: monospace;
+        }
+        pre {
+          font-family: monospace;
+          font-size: 9pt;
+          white-space: pre;
+          margin: 0;
+          padding: 1mm;
+        }
+      `);
+      doc.write('</style></head><body>');
+      doc.write(`<pre>${conteudo}</pre>`);
+      doc.write('</body></html>');
+      doc.close();
+      
+      // Imprimir e então remover o iframe
+      iframeImpressao.onload = () => {
+        try {
+          iframeImpressao.contentWindow?.print();
+          setTimeout(() => {
+            document.body.removeChild(iframeImpressao);
+          }, 1000);
+        } catch (error) {
+          console.error('Erro ao imprimir:', error);
+          document.body.removeChild(iframeImpressao);
+          toast.error('Erro ao imprimir os itens');
+        }
+      };
+    }
+  };
+
   // Renderizar item da notificação com detalhes do produto
   const renderItemComProduto = (item: ItemNotificacao) => {
     const produto = produtosCache[item.produto_id];
@@ -294,7 +437,7 @@ export default function NotificacaoPanel() {
               {notificacao.content.pedido_id && (
                 <div className="flex space-x-2">
                   <button 
-                    onClick={() => navegarParaImpressao(notificacao.content.pedido_id, 'somente-novos')}
+                    onClick={() => imprimirItensNotificacao(notificacao)}
                     className="text-xs bg-amber-500 hover:bg-amber-600 text-white px-2 py-1 rounded"
                   >
                     Imprimir Novos Itens
@@ -410,7 +553,7 @@ export default function NotificacaoPanel() {
                 {pedidoId && (
                   <div className="flex space-x-2">
                     <button 
-                      onClick={() => navegarParaImpressao(pedidoId, 'somente-novos')}
+                      onClick={() => imprimirItensNotificacao(notificacao)}
                       className="text-xs bg-amber-500 hover:bg-amber-600 text-white px-2 py-1 rounded"
                     >
                       Imprimir Novos Itens
