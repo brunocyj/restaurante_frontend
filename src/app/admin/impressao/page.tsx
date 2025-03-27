@@ -134,13 +134,18 @@ export default function ImpressaoPage() {
   };
 
   const formatarData = (data: string | Date) => {
-    return new Date(data).toLocaleString('pt-BR', {
+    // Criar objeto Date a partir do input
+    const dataObj = new Date(data);
+    
+    // Converter para horário de Brasília (UTC-3)
+    return dataObj.toLocaleString('pt-BR', {
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
       hour: '2-digit',
       minute: '2-digit',
-      second: '2-digit'
+      second: '2-digit',
+      timeZone: 'America/Sao_Paulo' // Forçar fuso horário brasileiro
     });
   };
 
@@ -279,19 +284,20 @@ export default function ImpressaoPage() {
 
   // Função para verificar itens novos adicionados após um horário específico
   const identificarItensNovos = (pedido: Pedido) => {
-    // Obtém somente itens adicionados recentemente (últimos 5 minutos, por exemplo)
+    // Obtém somente itens adicionados recentemente (últimos 5 minutos)
     const cincoMinutosAtras = new Date(new Date().getTime() - 5 * 60 * 1000);
     
     // Filtra os itens do pedido que foram adicionados recentemente
-    // Assumindo que cada item tenha um timestamp ou possa ser comparado
-    // Neste exemplo, usamos uma lógica simplificada já que não temos timestamp por item
-    
-    // Supondo que itens adicionados recentemente foram os últimos 3 adicionados ao pedido
-    // Em um sistema real, você filtraria pelo timestamp real do item
-    const totalItens = pedido.itens.length;
-    const ultimosItens = pedido.itens.slice(Math.max(0, totalItens - 3));
-    
-    return ultimosItens;
+    // usando o timestamp real de cada item
+    return pedido.itens.filter(item => {
+      if (!item.criado_em) return false;
+      
+      // Criar data a partir do timestamp (que está em UTC)
+      const dataItem = new Date(item.criado_em);
+      
+      // Comparar com o limite de 5 minutos
+      return dataItem > cincoMinutosAtras;
+    });
   };
 
   const enviarParaImpressao = () => {

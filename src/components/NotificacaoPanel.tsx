@@ -226,6 +226,7 @@ export default function NotificacaoPanel() {
     return (
       <div className="flex flex-col items-start ml-6 mt-1 mb-2">
         <div className="flex items-center space-x-2">
+          <span className="font-semibold text-amber-400">{item.quantidade}x</span>
           <span className="font-semibold">{produto?.nome}</span>
           {produto?.descricao && (
             <span className="text-xs text-gray-600">({produto.descricao})</span>
@@ -356,76 +357,6 @@ export default function NotificacaoPanel() {
             <p className="text-sm text-slate-400 mt-1">
               {formatarDataNotificacao(notificacao.created_at)}
             </p>
-          </div>
-        );
-        
-      case TipoNotificacao.ITEMS_ADICIONADOS:
-        // Use uma versão segura para obter o pedido_id 
-        const conteudoMsg = notificacao.content.message;
-        const pedidoIdAdicionados = notificacao.content.pedido_id || 
-                                   (conteudoMsg && typeof conteudoMsg === 'string' && conteudoMsg.includes('{') ? 
-                                    JSON.parse(conteudoMsg).pedido_id : conteudoMsg);
-                                    
-        // Use uma abordagem segura para obter os itens adicionados
-        const itensAdicionadosArr = notificacao.items && 
-                                   Array.isArray(notificacao.items) && 
-                                   notificacao.items.length > 0 ? 
-                                   notificacao.items : [];
-        
-        return (
-          <div>
-            <div className="flex items-center justify-between">
-              <div className="font-semibold">
-                Itens adicionados ao pedido da {mesa ? `Mesa ${mesa.id}` : 'mesa'}
-              </div>
-              {pedidoIdAdicionados && (
-                <div className="flex space-x-2">
-                  <button 
-                    onClick={() => navegarParaImpressao(pedidoIdAdicionados, 'somente-novos')}
-                    className="text-xs bg-amber-500 hover:bg-amber-600 text-white px-2 py-1 rounded"
-                  >
-                    Imprimir Novos Itens
-                  </button>
-                  <button 
-                    onClick={() => navegarParaImpressao(pedidoIdAdicionados, 'cozinha-pratos')}
-                    className="text-xs bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded"
-                  >
-                    Imprimir p/ Cozinha
-                  </button>
-                </div>
-              )}
-            </div>
-            <div className="text-sm text-gray-500 mb-2">
-              {formatarDataNotificacao(notificacao.created_at)}
-            </div>
-            {isExpanded && itensAdicionadosArr.length > 0 && (
-              <div className="mt-1">
-                {itensAdicionadosArr.map((item: any, index: number) => (
-                  <div key={index}>
-                    {renderItemComProduto(item)}
-                  </div>
-                ))}
-                <button
-                  onClick={() => handleExpandNotification(notificacao.id)}
-                  className="text-xs text-blue-500 mt-1"
-                >
-                  Ocultar detalhes
-                </button>
-              </div>
-            )}
-            {!isExpanded && itensAdicionadosArr.length > 0 && (
-              <div>
-                <div className="text-sm">
-                  {itensAdicionadosArr.length} {itensAdicionadosArr.length === 1 ? 'item adicionado' : 'itens adicionados'}
-                </div>
-                <button
-                  onClick={() => handleExpandNotification(notificacao.id)}
-                  className="text-xs text-blue-500 mt-1"
-                >
-                  Ver detalhes
-                </button>
-              </div>
-            )}
           </div>
         );
         
