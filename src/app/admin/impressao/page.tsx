@@ -401,7 +401,6 @@ export default function ImpressaoPage() {
         // Preparar conteúdo para impressão em HTML
         const conteudoHTML = document.createElement('pre');
         conteudoHTML.style.fontFamily = 'monospace';
-        conteudoHTML.style.fontSize = '12px';
         conteudoHTML.style.whiteSpace = 'pre';
         conteudoHTML.style.margin = '0';
         conteudoHTML.style.padding = '0';
@@ -429,7 +428,8 @@ export default function ImpressaoPage() {
             }
             pre {
               font-family: monospace;
-              font-size: 9pt;
+              font-size: ${modoImpressao === 'sem-precos' ? '13pt' : '9pt'} !important;
+              font-weight: ${modoImpressao === 'sem-precos' ? 'bold' : 'normal'};
               white-space: pre;
               margin: 0;
               padding: 1mm;
@@ -469,7 +469,6 @@ export default function ImpressaoPage() {
       // Preparar conteúdo para impressão em HTML
       const conteudoHTML = document.createElement('pre');
       conteudoHTML.style.fontFamily = 'monospace';
-      conteudoHTML.style.fontSize = '12px';
       conteudoHTML.style.whiteSpace = 'pre';
       conteudoHTML.style.margin = '0';
       conteudoHTML.style.padding = '0';
@@ -497,7 +496,8 @@ export default function ImpressaoPage() {
           }
           pre {
             font-family: monospace;
-            font-size: 9pt;
+            font-size: ${modoImpressao === 'sem-precos' ? '13pt' : '9pt'} !important;
+            font-weight: ${modoImpressao === 'sem-precos' ? 'bold' : 'normal'};
             white-space: pre;
             margin: 0;
             padding: 1mm;
