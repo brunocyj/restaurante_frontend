@@ -19,11 +19,13 @@ export default function ImpressaoPage() {
   const [error, setError] = useState<string | null>(null);
   const [nomeRestaurante, setNomeRestaurante] = useState('美滋滋烤串店');
   const [endereco, setEndereco] = useState('RUA TAQUARI 934 MOOCA');
-  const [modoImpressao, setModoImpressao] = useState<'completo' | 'cozinha-pratos' | 'cozinha-bebidas' | 'somente-novos' | 'todas'>('completo');
+  const [modoImpressao, setModoImpressao] = useState<'completo' | 'sem-precos'>('completo');
   const [filtroRecentes, setFiltroRecentes] = useState<boolean>(false);
   const [pedidosVistos, setPedidosVistos] = useState<Set<string>>(new Set());
   const [atualizacaoAutomatica, setAtualizacaoAutomatica] = useState<boolean>(false);
   const [itensNovos, setItensNovos] = useState<any[]>([]);
+  const [margemLateral, setMargemLateral] = useState<number>(3);
+  const [imprimirCategoriasSeparadas, setImprimirCategoriasSeparadas] = useState<boolean>(false);
   
   const conteudoImpressaoRef = useRef<HTMLDivElement>(null);
   const searchParams = useSearchParams();
@@ -52,12 +54,8 @@ export default function ImpressaoPage() {
       const pedidoIdParam = searchParams.get('pedidoId');
       const modoParam = searchParams.get('modo');
       
-      if (modoParam === 'cozinha-pratos') {
-        setModoImpressao('cozinha-pratos');
-      } else if (modoParam === 'cozinha-bebidas') {
-        setModoImpressao('cozinha-bebidas');
-      } else if (modoParam === 'somente-novos') {
-        setModoImpressao('somente-novos');
+      if (modoParam === 'sem-precos') {
+        setModoImpressao('sem-precos');
       } else if (modoParam === 'todas') {
         // Se o modo for 'todas', vamos imprimir todas as notas em sequência
         setTimeout(() => {
@@ -244,128 +242,77 @@ export default function ImpressaoPage() {
       .sort((a, b) => a.ordem - b.ordem);
   };
 
-  // Função para filtrar somente os itens de cozinha (não bebidas)
-  const filtrarItensCozinha = (itens: any[]) => {
-    return itens.filter(item => {
-      const produto = produtos.find(p => p.id === item.produto_id);
-      if (!produto) return true; // Se produto não encontrado, vai para cozinha por padrão
-      
-      const categoria = categorias.find(c => c.id === produto.categoria_id);
-      if (!categoria) return true;
-      
-      const tipoCardapio = tiposCardapio.find(t => t.id === categoria.tipo_cardapio_id);
-      const tipoNome = tipoCardapio?.nome?.toLowerCase() || '';
-      const categoriaNome = categoria.nome.toLowerCase();
-      
-      return !(tipoNome === 'bebidas' || 
-              categoriaNome.includes('bebida') || 
-              categoriaNome.includes('drink'));
-    });
+  // Função para alinhar centralmente o texto (com margem configurável)
+  const centralizarTexto = (texto: string, larguraMaxima: number): string => {
+    const margem = margemLateral;
+    const larguraDisponivel = larguraMaxima - (margem * 2);
+    const espacosEsquerda = Math.max(0, Math.floor((larguraDisponivel - texto.length) / 2)) + margem;
+    return ' '.repeat(espacosEsquerda) + texto + ' '.repeat(Math.max(0, larguraMaxima - texto.length - espacosEsquerda));
   };
 
-  // Função para filtrar somente bebidas
-  const filtrarItensBebidas = (itens: any[]) => {
-    return itens.filter(item => {
-      const produto = produtos.find(p => p.id === item.produto_id);
-      if (!produto) return false; // Se produto não encontrado, não considera bebida
-      
-      const categoria = categorias.find(c => c.id === produto.categoria_id);
-      if (!categoria) return false;
-      
-      const tipoCardapio = tiposCardapio.find(t => t.id === categoria.tipo_cardapio_id);
-      const tipoNome = tipoCardapio?.nome?.toLowerCase() || '';
-      const categoriaNome = categoria.nome.toLowerCase();
-      
-      return (tipoNome === 'bebidas' || 
-             categoriaNome.includes('bebida') || 
-             categoriaNome.includes('drink'));
-    });
-  };
-
-  // Função para verificar itens novos adicionados após um horário específico
-  const identificarItensNovos = (pedido: Pedido) => {
-    // Obtém somente itens adicionados recentemente (últimos 5 minutos)
-    const cincoMinutosAtras = new Date(new Date().getTime() - 5 * 60 * 1000);
-    
-    // Filtra os itens do pedido que foram adicionados recentemente
-    // usando o timestamp real de cada item
-    return pedido.itens.filter(item => {
-      if (!item.criado_em) return false;
-      
-      // Criar data a partir do timestamp (que está em UTC)
-      const dataItem = new Date(item.criado_em);
-      
-      // Comparar com o limite de 5 minutos
-      return dataItem > cincoMinutosAtras;
-    });
-  };
-
+  // Modificar o método enviarParaImpressao para usar as novas configurações
   const enviarParaImpressao = () => {
     if (!pedidoSelecionado) return;
 
-    // Se o modo for somente novos itens, atualiza os itens a serem impressos
-    if (modoImpressao === 'somente-novos') {
-      const novosItens = identificarItensNovos(pedidoSelecionado);
-      setItensNovos(novosItens);
-    }
-
     // Criar conteúdo para impressora térmica
     // Formatando para impressora térmica que recebe texto puro
-    const criarConteudoTermico = () => {
+    const criarConteudoTermico = (categoriaSelecionada?: string) => {
       const linhas = [];
-      const larguraMaxima = 42; // Caracteres por linha típicos para impressoras térmicas de 80mm
+      // Largura padrão para impressoras térmicas de 80mm (reduzida para centralizar mais)
+      const larguraMaxima = 42; 
       
-      // Centralizar texto
+      // Centralizar texto com margem configurável
       const centralizar = (texto: string) => {
-        const espacos = Math.max(0, Math.floor((larguraMaxima - texto.length) / 2));
-        return ' '.repeat(espacos) + texto;
+        return centralizarTexto(texto, larguraMaxima);
       };
       
       // Título
       linhas.push(centralizar(nomeRestaurante));
       linhas.push(centralizar(endereco));
-      linhas.push('-'.repeat(larguraMaxima));
+      linhas.push(centralizar('-'.repeat(larguraMaxima - (margemLateral * 2))));
       
       // Informações do pedido
-      linhas.push(`Mesa: ${getMesaNome(pedidoSelecionado.mesa_id)}`);
-      linhas.push(`Pedido: #${pedidoSelecionado.id.substring(0, 8)}`);
-      linhas.push(`Data: ${formatarData(pedidoSelecionado.criado_em).split(' ')[0]}`);
-      linhas.push(`Hora: ${formatarData(pedidoSelecionado.criado_em).split(' ')[1]}`);
-      linhas.push('-'.repeat(larguraMaxima));
+      const infoMesa = `Mesa: ${getMesaNome(pedidoSelecionado.mesa_id)}`;
+      const infoPedido = `Pedido: #${pedidoSelecionado.id.substring(0, 8)}`;
+      const infoData = `Data: ${formatarData(pedidoSelecionado.criado_em).split(' ')[0]}`;
+      const infoHora = `Hora: ${formatarData(pedidoSelecionado.criado_em).split(' ')[1]}`;
+      
+      linhas.push(' '.repeat(margemLateral) + infoMesa);
+      linhas.push(' '.repeat(margemLateral) + infoPedido);
+      linhas.push(' '.repeat(margemLateral) + infoData);
+      linhas.push(' '.repeat(margemLateral) + infoHora);
+      linhas.push(centralizar('-'.repeat(larguraMaxima - (margemLateral * 2))));
       
       // Cabeçalho de itens - ajustar com base no modo de impressão
       if (modoImpressao === 'completo') {
-        linhas.push('QTD NOME                           VALOR');
+        linhas.push(' '.repeat(margemLateral) + 'QTD NOME                           VALOR');
       } else {
-        linhas.push('QTD NOME');
+        linhas.push(' '.repeat(margemLateral) + 'QTD NOME');
       }
       
-      // Definição explícita da largura de cada coluna em caracteres
-      const LARGURA_TOTAL = modoImpressao === 'completo' ? 35 : 38;
-      const LARGURA_QTD = 3;       // Espaço para quantidade
+      // Definição explícita da largura de cada coluna em caracteres (ajustadas para considerar a margem)
+      const LARGURA_TOTAL = modoImpressao === 'completo' ? 35 - margemLateral : 38 - margemLateral;
+      const LARGURA_QTD = 3;
       const LARGURA_VALOR = modoImpressao === 'completo' ? 7 : 0;
       const LARGURA_DESCRICAO = LARGURA_TOTAL - LARGURA_QTD - LARGURA_VALOR;
       
-      // Determinar quais itens incluir com base no modo de impressão
+      // Todos os itens do pedido serão impressos
       let itensParaImprimir = pedidoSelecionado.itens;
-      
-      if (modoImpressao === 'cozinha-pratos') {
-        itensParaImprimir = filtrarItensCozinha(pedidoSelecionado.itens);
-      } else if (modoImpressao === 'cozinha-bebidas') {
-        itensParaImprimir = filtrarItensBebidas(pedidoSelecionado.itens);
-      } else if (modoImpressao === 'somente-novos') {
-        itensParaImprimir = itensNovos;
-      }
       
       // Agrupar itens por categoria antes de imprimir
       const gruposDeItens = agruparItensPorCozinha(itensParaImprimir);
       
+      // Se estamos imprimindo uma categoria específica, filtrar apenas ela
+      const gruposParaImprimir = categoriaSelecionada 
+        ? gruposDeItens.filter(grupo => grupo.nome.includes(categoriaSelecionada))
+        : gruposDeItens;
+      
       // Iterar sobre cada grupo
-      gruposDeItens.forEach((grupo: { nome: string; itens: any[] }) => {
+      gruposParaImprimir.forEach((grupo: { nome: string; itens: any[] }, grupoIndex: number) => {
         // Título do grupo
-        linhas.push('-'.repeat(larguraMaxima));
+        linhas.push(centralizar('-'.repeat(larguraMaxima - (margemLateral * 2))));
         linhas.push(centralizar(grupo.nome));
-        linhas.push('-'.repeat(larguraMaxima));
+        linhas.push(centralizar('-'.repeat(larguraMaxima - (margemLateral * 2))));
         
         // Itens deste grupo
         grupo.itens.forEach((item: any) => {
@@ -384,48 +331,52 @@ export default function ImpressaoPage() {
           if (modoImpressao === 'completo') {
             // Versão com preço
             const valorStr = alinharDireita(valorFormatado, LARGURA_VALOR);
-            linhas.push(qtdStr + nomesTruncado.padEnd(larguraEfetivaNome) + '  ' + valorStr);
+            linhas.push(' '.repeat(margemLateral) + qtdStr + nomesTruncado.padEnd(larguraEfetivaNome) + '  ' + valorStr);
           } else {
             // Versão sem preço (para cozinha)
-            linhas.push(qtdStr + " " + nomesTruncado);
+            linhas.push(' '.repeat(margemLateral) + qtdStr + " " + nomesTruncado);
           }
           
           // Descrição e observações em linhas separadas com recuo
           if (descricao) {
-            const descricaoFormatada = `  ${descricao}`;
+            const recuo = margemLateral + 2;
+            const descricaoFormatada = ' '.repeat(recuo) + descricao;
             linhas.push(descricaoFormatada.length > larguraMaxima 
               ? descricaoFormatada.substring(0, larguraMaxima - 3) + '...' 
               : descricaoFormatada);
           }
           
           if (item.observacoes) {
-            const obsFormatada = `  Obs: ${item.observacoes}`;
+            const recuo = margemLateral + 2;
+            const obsFormatada = ' '.repeat(recuo) + `Obs: ${item.observacoes}`;
             linhas.push(obsFormatada.length > larguraMaxima 
               ? obsFormatada.substring(0, larguraMaxima - 3) + '...' 
               : obsFormatada);
           }
         });
+        
+        // Se não for o último grupo e não estamos imprimindo uma categoria específica
+        // Adicionar comando de corte de papel
+        if (!categoriaSelecionada && grupoIndex < gruposParaImprimir.length - 1) {
+          linhas.push('\n\n\n\x1D\x56\x41\x0A'); // GS V A LF - Comando de corte mais compatível
+        }
       });
       
-      linhas.push('-'.repeat(larguraMaxima));
+      linhas.push(centralizar('-'.repeat(larguraMaxima - (margemLateral * 2))));
       
       // Total (apenas no modo completo)
       if (modoImpressao === 'completo') {
         const totalStr = `TOTAL: R$ ${formatarPreco(pedidoSelecionado.valor_total)}`;
-        linhas.push(totalStr.padStart(larguraMaxima));
-      } else if (modoImpressao === 'cozinha-pratos') {
-        linhas.push(centralizar("*** COMANDA PARA COZINHA ***"));
-      } else if (modoImpressao === 'cozinha-bebidas') {
-        linhas.push(centralizar("*** COMANDA PARA BAR ***"));
-      } else if (modoImpressao === 'somente-novos') {
-        linhas.push(centralizar("*** APENAS ITENS NOVOS ***"));
+        linhas.push(' '.repeat(margemLateral) + totalStr);
+      } else if (modoImpressao === 'sem-precos') {
+        linhas.push(centralizar("*** COMANDA SEM PREÇOS ***"));
       }
       
       // Observação geral
       if (pedidoSelecionado.observacao_geral) {
         linhas.push('');
-        linhas.push('Observações:');
-        linhas.push(pedidoSelecionado.observacao_geral);
+        linhas.push(' '.repeat(margemLateral) + 'Observações:');
+        linhas.push(' '.repeat(margemLateral) + pedidoSelecionado.observacao_geral);
       }
       
       // Finalização
@@ -435,64 +386,145 @@ export default function ImpressaoPage() {
       return linhas.join('\n');
     };
     
-    // Preparar conteúdo para impressão em HTML
-    const conteudoHTML = document.createElement('pre');
-    conteudoHTML.style.fontFamily = 'monospace';
-    conteudoHTML.style.fontSize = '12px';
-    conteudoHTML.style.whiteSpace = 'pre';
-    conteudoHTML.style.margin = '0';
-    conteudoHTML.style.padding = '0';
-    conteudoHTML.textContent = criarConteudoTermico();
-    
-    // Criar um iframe para impressão
-    const iframeImpressao = document.createElement('iframe');
-    iframeImpressao.style.display = 'none';
-    document.body.appendChild(iframeImpressao);
-    
-    // Configurar o conteúdo do iframe
-    const doc = iframeImpressao.contentWindow?.document;
-    if (doc) {
-      doc.open();
-      doc.write('<html><head><title>Impressão Térmica</title>');
-      doc.write('<style>');
-      doc.write(`
-        @page {
-          size: 80mm auto;  /* Largura fixa de 80mm para impressora térmica */
-          margin: 0mm;
-        }
-        body {
-          margin: 0;
-          padding: 0;
-        }
-        pre {
-          font-family: monospace;
-          font-size: 9pt;
-          white-space: pre;
-          margin: 0;
-          padding: 1mm;
-        }
-      `);
-      doc.write('</style></head><body>');
-      doc.write(conteudoHTML.outerHTML);
-      doc.write('</body></html>');
-      doc.close();
+    // Imprimir todas as categorias em impressões separadas ou tudo junto
+    if (imprimirCategoriasSeparadas) {
+      // Obter todos os grupos para imprimir cada um separadamente
+      const gruposDeItens = agruparItensPorCozinha(pedidoSelecionado.itens);
       
-      // Aguardar carregamento do iframe antes de imprimir
-      iframeImpressao.onload = function() {
-        try {
-          // Abre o diálogo de impressão do Windows
-          iframeImpressao.contentWindow?.print();
+      // Criar um loop para imprimir cada categoria
+      const imprimirProximaCategoria = (indice = 0) => {
+        if (indice >= gruposDeItens.length) return;
+        
+        const grupo = gruposDeItens[indice];
+        const categoriaNome = grupo.nome;
+        
+        // Preparar conteúdo para impressão em HTML
+        const conteudoHTML = document.createElement('pre');
+        conteudoHTML.style.fontFamily = 'monospace';
+        conteudoHTML.style.fontSize = '12px';
+        conteudoHTML.style.whiteSpace = 'pre';
+        conteudoHTML.style.margin = '0';
+        conteudoHTML.style.padding = '0';
+        conteudoHTML.textContent = criarConteudoTermico(categoriaNome);
+        
+        // Criar um iframe para impressão
+        const iframeImpressao = document.createElement('iframe');
+        iframeImpressao.style.display = 'none';
+        document.body.appendChild(iframeImpressao);
+        
+        // Configurar o conteúdo do iframe
+        const doc = iframeImpressao.contentWindow?.document;
+        if (doc) {
+          doc.open();
+          doc.write('<html><head><title>Impressão Térmica</title>');
+          doc.write('<style>');
+          doc.write(`
+            @page {
+              size: 80mm auto;  /* Largura fixa de 80mm para impressora térmica */
+              margin: 0mm;
+            }
+            body {
+              margin: 0;
+              padding: 0;
+            }
+            pre {
+              font-family: monospace;
+              font-size: 9pt;
+              white-space: pre;
+              margin: 0;
+              padding: 1mm;
+            }
+          `);
+          doc.write('</style></head><body>');
+          doc.write(conteudoHTML.outerHTML);
+          doc.write('</body></html>');
+          doc.close();
           
-          // Remover o iframe após um tempo
-          setTimeout(function() {
-            document.body.removeChild(iframeImpressao);
-          }, 1000);
-        } catch (error) {
-          console.error('Erro ao imprimir:', error);
-          alert('Erro ao abrir o diálogo de impressão. Verifique as configurações do seu navegador.');
-          document.body.removeChild(iframeImpressao);
+          // Aguardar carregamento do iframe antes de imprimir
+          iframeImpressao.onload = function() {
+            try {
+              // Abre o diálogo de impressão do Windows
+              iframeImpressao.contentWindow?.print();
+              
+              // Remover o iframe após um tempo
+              setTimeout(function() {
+                document.body.removeChild(iframeImpressao);
+                
+                // Imprimir próxima categoria
+                imprimirProximaCategoria(indice + 1);
+              }, 1500);
+            } catch (error) {
+              console.error('Erro ao imprimir:', error);
+              alert('Erro ao abrir o diálogo de impressão. Verifique as configurações do seu navegador.');
+              document.body.removeChild(iframeImpressao);
+            }
+          };
         }
       };
+      
+      // Iniciar impressão da primeira categoria
+      imprimirProximaCategoria();
+    } else {
+      // Impressão normal (todos os itens juntos)
+      // Preparar conteúdo para impressão em HTML
+      const conteudoHTML = document.createElement('pre');
+      conteudoHTML.style.fontFamily = 'monospace';
+      conteudoHTML.style.fontSize = '12px';
+      conteudoHTML.style.whiteSpace = 'pre';
+      conteudoHTML.style.margin = '0';
+      conteudoHTML.style.padding = '0';
+      conteudoHTML.textContent = criarConteudoTermico();
+      
+      // Criar um iframe para impressão
+      const iframeImpressao = document.createElement('iframe');
+      iframeImpressao.style.display = 'none';
+      document.body.appendChild(iframeImpressao);
+      
+      // Configurar o conteúdo do iframe
+      const doc = iframeImpressao.contentWindow?.document;
+      if (doc) {
+        doc.open();
+        doc.write('<html><head><title>Impressão Térmica</title>');
+        doc.write('<style>');
+        doc.write(`
+          @page {
+            size: 80mm auto;  /* Largura fixa de 80mm para impressora térmica */
+            margin: 0mm;
+          }
+          body {
+            margin: 0;
+            padding: 0;
+          }
+          pre {
+            font-family: monospace;
+            font-size: 9pt;
+            white-space: pre;
+            margin: 0;
+            padding: 1mm;
+          }
+        `);
+        doc.write('</style></head><body>');
+        doc.write(conteudoHTML.outerHTML);
+        doc.write('</body></html>');
+        doc.close();
+        
+        // Aguardar carregamento do iframe antes de imprimir
+        iframeImpressao.onload = function() {
+          try {
+            // Abre o diálogo de impressão do Windows
+            iframeImpressao.contentWindow?.print();
+            
+            // Remover o iframe após um tempo
+            setTimeout(function() {
+              document.body.removeChild(iframeImpressao);
+            }, 1000);
+          } catch (error) {
+            console.error('Erro ao imprimir:', error);
+            alert('Erro ao abrir o diálogo de impressão. Verifique as configurações do seu navegador.');
+            document.body.removeChild(iframeImpressao);
+          }
+        };
+      }
     }
   };
 
@@ -503,36 +535,29 @@ export default function ImpressaoPage() {
     // Salvar modo atual
     const modoAtual = modoImpressao;
     
-    // Imprimir nota completa
+    // Imprimir nota completa com preços
     setModoImpressao('completo');
     setTimeout(() => {
       enviarParaImpressao();
       
-      // Imprimir nota de cozinha (pratos)
-      setModoImpressao('cozinha-pratos');
+      // Imprimir nota sem preços
+      setModoImpressao('sem-precos');
       setTimeout(() => {
         enviarParaImpressao();
         
-        // Imprimir nota de bebidas
-        setModoImpressao('cozinha-bebidas');
+        // Restaurar modo original
+        setModoImpressao(modoAtual);
+        
+        // Notificar que a impressão foi concluída
+        const notificationDiv = document.createElement('div');
+        notificationDiv.textContent = 'Todas as notas foram enviadas para impressão!';
+        notificationDiv.className = 'fixed top-4 right-4 bg-green-600 text-white px-4 py-2 rounded-md shadow-lg';
+        document.body.appendChild(notificationDiv);
+        
+        // Remover a notificação após 3 segundos
         setTimeout(() => {
-          enviarParaImpressao();
-          
-          // Restaurar modo original
-          setModoImpressao(modoAtual);
-          
-          // Notificar que a impressão foi concluída
-          const notificationDiv = document.createElement('div');
-          notificationDiv.textContent = 'Todas as notas foram enviadas para impressão!';
-          notificationDiv.className = 'fixed top-4 right-4 bg-green-600 text-white px-4 py-2 rounded-md shadow-lg';
-          document.body.appendChild(notificationDiv);
-          
-          // Remover a notificação após 3 segundos
-          setTimeout(() => {
-            document.body.removeChild(notificationDiv);
-          }, 3000);
-          
-        }, 1000);
+          document.body.removeChild(notificationDiv);
+        }, 3000);
       }, 1000);
     }, 500);
   };
@@ -624,32 +649,48 @@ export default function ImpressaoPage() {
                   <input
                     type="radio"
                     name="modo-impressao"
-                    checked={modoImpressao === 'cozinha-pratos'}
-                    onChange={() => setModoImpressao('cozinha-pratos')}
+                    checked={modoImpressao === 'sem-precos'}
+                    onChange={() => setModoImpressao('sem-precos')}
                     className="h-4 w-4 text-amber-500 focus:ring-amber-500 border-slate-600 bg-slate-700"
                   />
-                  <span className="ml-2 text-sm text-slate-300">Cozinha (pratos)</span>
+                  <span className="ml-2 text-sm text-slate-300">Completo (sem preços)</span>
                 </label>
+              </div>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-1">
+                Configurações de Layout
+              </label>
+              <div className="grid grid-cols-1 gap-2">
                 <label className="inline-flex items-center">
                   <input
-                    type="radio"
-                    name="modo-impressao"
-                    checked={modoImpressao === 'cozinha-bebidas'}
-                    onChange={() => setModoImpressao('cozinha-bebidas')}
+                    type="checkbox"
+                    checked={imprimirCategoriasSeparadas}
+                    onChange={(e) => setImprimirCategoriasSeparadas(e.target.checked)}
                     className="h-4 w-4 text-amber-500 focus:ring-amber-500 border-slate-600 bg-slate-700"
                   />
-                  <span className="ml-2 text-sm text-slate-300">Cozinha (bebidas)</span>
+                  <span className="ml-2 text-sm text-slate-300">Imprimir cada categoria em uma impressão separada</span>
                 </label>
-                <label className="inline-flex items-center">
+                
+                <div className="flex items-center mt-1">
+                  <span className="text-sm text-slate-300 mr-2">Margem lateral:</span>
                   <input
-                    type="radio"
-                    name="modo-impressao"
-                    checked={modoImpressao === 'somente-novos'}
-                    onChange={() => setModoImpressao('somente-novos')}
-                    className="h-4 w-4 text-amber-500 focus:ring-amber-500 border-slate-600 bg-slate-700"
+                    type="range"
+                    min="3"
+                    max="3"
+                    value={margemLateral}
+                    onChange={(e) => setMargemLateral(parseInt(e.target.value))}
+                    className="w-24 h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer"
                   />
-                  <span className="ml-2 text-sm text-slate-300">Somente novos itens</span>
-                </label>
+                  <span className="text-sm text-slate-300 ml-2">{margemLateral}</span>
+                </div>
+                
+                <div className="mt-1 p-2 bg-slate-700 rounded-md">
+                  <p className="text-xs text-slate-300">
+                    <span className="font-semibold">Nota:</span> Por padrão, a impressão inclui comandos de corte automático entre cada categoria. Se sua impressora não suportar esses comandos, ative a opção acima para imprimir cada categoria separadamente.
+                  </p>
+                </div>
               </div>
             </div>
             
@@ -735,11 +776,7 @@ export default function ImpressaoPage() {
             >
               {modoImpressao === 'completo' 
                 ? 'Imprimir Comanda' 
-                : modoImpressao === 'cozinha-pratos'
-                ? 'Imprimir p/ Cozinha'
-                : modoImpressao === 'cozinha-bebidas'
-                ? 'Imprimir p/ Bar'
-                : 'Imprimir Novos Itens'}
+                : 'Imprimir Sem Preços'}
             </button>
             
             <button
@@ -770,9 +807,7 @@ export default function ImpressaoPage() {
                 <p>{endereco}</p>
                 {modoImpressao !== 'completo' && (
                   <p className="mt-2 font-bold text-xs bg-gray-200 py-1">
-                    {modoImpressao === 'cozinha-pratos' && "*** COMANDA PARA COZINHA ***"}
-                    {modoImpressao === 'cozinha-bebidas' && "*** COMANDA PARA BAR ***"}
-                    {modoImpressao === 'somente-novos' && "*** APENAS ITENS NOVOS ***"}
+                    {modoImpressao === 'sem-precos' && "*** COMANDA SEM PREÇOS ***"}
                   </p>
                 )}
                 <div className="my-2 border-t border-b border-dashed border-gray-300 py-1"></div>
@@ -794,14 +829,6 @@ export default function ImpressaoPage() {
               {/* Determinar quais itens mostrar com base no modo de impressão */}
               {(() => {
                 let itensParaVisualizar = pedidoSelecionado.itens;
-                
-                if (modoImpressao === 'cozinha-pratos') {
-                  itensParaVisualizar = filtrarItensCozinha(pedidoSelecionado.itens);
-                } else if (modoImpressao === 'cozinha-bebidas') {
-                  itensParaVisualizar = filtrarItensBebidas(pedidoSelecionado.itens);
-                } else if (modoImpressao === 'somente-novos') {
-                  itensParaVisualizar = identificarItensNovos(pedidoSelecionado);
-                }
                 
                 const gruposVisualizados = agruparItensPorCozinha(itensParaVisualizar);
                 
