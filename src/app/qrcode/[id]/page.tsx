@@ -229,6 +229,33 @@ export default function QRCodePage() {
     setProdutoModal(null);
     setQuantidadeModal(1);
     setObservacoesModal('');
+    
+    // Atualizar a página para refletir os novos itens
+    atualizarDados();
+  };
+  
+  // Função para atualizar dados da página
+  const atualizarDados = async () => {
+    try {
+      // Buscar dados da mesa
+      const mesaData = await getMesaById(mesaId);
+      setMesa(mesaData);
+      
+      // Verificar se já existe um pedido aberto para esta mesa
+      const pedidosMesa = await getPedidosPorMesa(mesaId);
+      const pedidosAtivos = pedidosMesa.filter(
+        (p: Pedido) => p.status === StatusPedido.ABERTO || p.status === StatusPedido.EM_ANDAMENTO
+      );
+      
+      if (pedidosAtivos.length > 0) {
+        // Existe um pedido ativo para esta mesa
+        const pedidoAtivo = pedidosAtivos[0];
+        setPedidoAtual(pedidoAtivo);
+        setPedidoStatus(pedidoAtivo.status);
+      }
+    } catch (error) {
+      console.error('Erro ao atualizar dados:', error);
+    }
   };
   
   // Função para remover item do carrinho
@@ -320,6 +347,9 @@ export default function QRCodePage() {
           await updatePedido(pedidoAtual.id, { observacao_geral: observacaoGeral });
         }
         
+        // Atualizar os dados do pedido
+        await atualizarDados();
+        
         // Mostrar mensagem de sucesso
         setMensagem('Itens adicionados ao pedido com sucesso!');
         setTipoMensagem('sucesso');
@@ -410,6 +440,10 @@ export default function QRCodePage() {
       
       // Atualizar o status do pedido para finalizado
       await atualizarStatusPedido(pedidoAtual.id, StatusPedido.FINALIZADO);
+      
+      // Buscar os dados atualizados do pedido
+      await atualizarDados();
+      
       setPedidoStatus(StatusPedido.FINALIZADO);
       
       // Mostrar mensagem de sucesso
@@ -501,7 +535,9 @@ export default function QRCodePage() {
           <div className="flex items-center space-x-3">
             {pedidoAtual && (
               <button
-                onClick={() => setShowPedidoModal(true)}
+                onClick={() => {
+                  atualizarDados().then(() => setShowPedidoModal(true));
+                }}
                 className="rounded-full bg-green-600 p-2 text-white hover:bg-green-700"
                 title="Ver pedido atual"
               >
@@ -1121,7 +1157,9 @@ export default function QRCodePage() {
       <div className="fixed bottom-4 right-4 z-40 flex flex-col space-y-2">
         {pedidoAtual && (
           <button
-            onClick={() => setShowPedidoModal(true)}
+            onClick={() => {
+              atualizarDados().then(() => setShowPedidoModal(true));
+            }}
             className="flex h-12 w-12 items-center justify-center rounded-full bg-green-600 text-white shadow-lg hover:bg-green-700 sm:hidden"
             aria-label="Ver pedido atual"
           >

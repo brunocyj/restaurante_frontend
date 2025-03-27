@@ -14,8 +14,9 @@ import {
 import { getProdutoById, Produto } from '@/lib/cardapio';
 import { getMesaById, Mesa } from '@/lib/mesa';
 import { toast } from 'react-hot-toast';
-
-
+import { useRouter } from 'next/navigation';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 interface ProdutoCache {
   [id: string]: Produto;
@@ -31,6 +32,7 @@ export default function NotificacaoPanel() {
   const [expandedNotifications, setExpandedNotifications] = useState<string[]>([]);
   const [produtosCache, setProdutosCache] = useState<ProdutoCache>({});
   const [mesasCache, setMesasCache] = useState<MesaCache>({});
+  const router = useRouter();
 
   // Definir handleExpandNotification antes de usá-lo em outras funções
   const handleExpandNotification = useCallback((notificationId: string) => {
@@ -202,32 +204,37 @@ export default function NotificacaoPanel() {
     }
   };
 
+  const navegarParaImpressao = (pedidoId: string | undefined, modo: string = 'cozinha-pratos') => {
+    if (!pedidoId) {
+      console.error('ID do pedido indefinido, não é possível navegar para impressão');
+      toast.error('Erro ao imprimir: ID do pedido não encontrado');
+      return;
+    }
+    router.push(`/admin/impressao?pedidoId=${pedidoId}&modo=${modo}`);
+  };
+
+  // Adicionar a função para imprimir todas as notas
+  const imprimirTodasNotas = (pedidoId: string) => {
+    // Navega para a página de impressão com um parâmetro especial
+    router.push(`/admin/impressao?pedidoId=${pedidoId}&modo=todas`);
+  };
+
   // Renderizar item da notificação com detalhes do produto
   const renderItemComProduto = (item: ItemNotificacao) => {
     const produto = produtosCache[item.produto_id];
     
     return (
-      <p>
-        <span className="font-medium">{item.quantidade}x</span>{' '}
-        {produto 
-          ? (
-            <>
-              <span className="text-white">{produto.nome}</span>
-              {produto.descricao && (
-                <span className="text-slate-400 text-xs ml-1">
-                  ({produto.descricao})
-                </span>
-              )}
-            </>
-          )
-          : <span className="text-slate-400">Produto {item.produto_id?.substring(0, 8)}</span>
-        }
-        {item.observacoes && (
-          <span className="text-slate-400 ml-1">
-            (Obs: {item.observacoes})
-          </span>
+      <div className="flex flex-col items-start ml-6 mt-1 mb-2">
+        <div className="flex items-center space-x-2">
+          <span className="font-semibold">{produto?.nome}</span>
+          {produto?.descricao && (
+            <span className="text-xs text-gray-600">({produto.descricao})</span>
+          )}
+        </div>
+        {expandedNotifications.includes(item.produto_id) && item.observacoes && (
+          <span className="text-xs text-gray-500">Obs: {item.observacoes}</span>
         )}
-      </p>
+      </div>
     );
   };
 
@@ -277,10 +284,30 @@ export default function NotificacaoPanel() {
                 
         return (
           <div className="flex flex-col">
-            <div className="flex items-center">
-              <div className="h-3 w-3 rounded-full bg-blue-500 mr-2"></div>
-              <p className="text-blue-500 font-semibold">Itens Adicionados ao Pedido</p>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <div className="h-3 w-3 rounded-full bg-blue-500 mr-2"></div>
+                <p className="text-blue-500 font-semibold">Itens Adicionados ao Pedido</p>
+              </div>
+              
+              {notificacao.content.pedido_id && (
+                <div className="flex space-x-2">
+                  <button 
+                    onClick={() => navegarParaImpressao(notificacao.content.pedido_id, 'somente-novos')}
+                    className="text-xs bg-amber-500 hover:bg-amber-600 text-white px-2 py-1 rounded"
+                  >
+                    Imprimir Novos Itens
+                  </button>
+                  <button 
+                    onClick={() => navegarParaImpressao(notificacao.content.pedido_id, 'cozinha-pratos')}
+                    className="text-xs bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded"
+                  >
+                    Imprimir p/ Cozinha
+                  </button>
+                </div>
+              )}
             </div>
+            
             <p className="mt-1">
               {mesa 
                 ? `${notificacao.count || todosProdutos.length || 'Novos'} itens adicionados ao pedido da Mesa ${mesa.id}` 
@@ -332,7 +359,185 @@ export default function NotificacaoPanel() {
           </div>
         );
         
+      case TipoNotificacao.NOVO_PEDIDO:
+        const pedidoId = notificacao.content.pedido_id || notificacao.content.message;
+        // Use uma abordagem segura para encontrar o pedido
+        const pedido = notificacao.items && 
+          Array.isArray(notificacao.items) && 
+          notificacao.items.length > 0 ? 
+          notificacao.items[0].pedido : null;
+        
+        if (!pedido) return <div>Pedido não encontrado</div>;
+        
+        return (
+          <div>
+            <div className="flex items-center justify-between">
+              <div className="font-semibold">
+                Novo pedido da {mesa ? `Mesa ${mesa.id}` : 'mesa'}
+              </div>
+              <div className="flex space-x-2">
+                <button 
+                  onClick={() => navegarParaImpressao(pedidoId, 'cozinha-pratos')}
+                  className="text-xs bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded mr-1"
+                >
+                  Imprimir p/ Cozinha
+                </button>
+                <button 
+                  onClick={() => imprimirTodasNotas(pedidoId)}
+                  className="text-xs bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded"
+                >
+                  Imprimir Tudo
+                </button>
+              </div>
+            </div>
+            <div className="text-sm text-gray-500">
+              {format(new Date(pedido.criado_em), 'dd/MM/yyyy HH:mm', { locale: ptBR })}
+            </div>
+          </div>
+        );
+        
+      case TipoNotificacao.ITENS_ADICIONADOS:
+        // Use uma versão segura para obter o pedido_id 
+        const conteudoMsg = notificacao.content.message;
+        const pedidoIdAdicionados = notificacao.content.pedido_id || 
+                                   (conteudoMsg && typeof conteudoMsg === 'string' && conteudoMsg.includes('{') ? 
+                                    JSON.parse(conteudoMsg).pedido_id : conteudoMsg);
+                                    
+        // Use uma abordagem segura para obter os itens adicionados
+        const itensAdicionadosArr = notificacao.items && 
+                                   Array.isArray(notificacao.items) && 
+                                   notificacao.items.length > 0 ? 
+                                   notificacao.items : [];
+        
+        return (
+          <div>
+            <div className="flex items-center justify-between">
+              <div className="font-semibold">
+                Itens adicionados ao pedido da {mesa ? `Mesa ${mesa.id}` : 'mesa'}
+              </div>
+              {pedidoIdAdicionados && (
+                <div className="flex space-x-2">
+                  <button 
+                    onClick={() => navegarParaImpressao(pedidoIdAdicionados, 'somente-novos')}
+                    className="text-xs bg-amber-500 hover:bg-amber-600 text-white px-2 py-1 rounded"
+                  >
+                    Imprimir Novos Itens
+                  </button>
+                  <button 
+                    onClick={() => navegarParaImpressao(pedidoIdAdicionados, 'cozinha-pratos')}
+                    className="text-xs bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded"
+                  >
+                    Imprimir p/ Cozinha
+                  </button>
+                </div>
+              )}
+            </div>
+            <div className="text-sm text-gray-500 mb-2">
+              {formatarDataNotificacao(notificacao.created_at)}
+            </div>
+            {isExpanded && itensAdicionadosArr.length > 0 && (
+              <div className="mt-1">
+                {itensAdicionadosArr.map((item: any, index: number) => (
+                  <div key={index}>
+                    {renderItemComProduto(item)}
+                  </div>
+                ))}
+                <button
+                  onClick={() => handleExpandNotification(notificacao.id)}
+                  className="text-xs text-blue-500 mt-1"
+                >
+                  Ocultar detalhes
+                </button>
+              </div>
+            )}
+            {!isExpanded && itensAdicionadosArr.length > 0 && (
+              <div>
+                <div className="text-sm">
+                  {itensAdicionadosArr.length} {itensAdicionadosArr.length === 1 ? 'item adicionado' : 'itens adicionados'}
+                </div>
+                <button
+                  onClick={() => handleExpandNotification(notificacao.id)}
+                  className="text-xs text-blue-500 mt-1"
+                >
+                  Ver detalhes
+                </button>
+              </div>
+            )}
+          </div>
+        );
+        
       default:
+        // Para notificações de novos pedidos (que podem não estar no enum)
+        if (notificacao.type === 'new_order' || 
+            notificacao.content.message?.includes('novo pedido')) {
+          const pedidoId = notificacao.content.pedido_id || notificacao.entity_id;
+          
+          return (
+            <div>
+              <div className="flex items-center justify-between">
+                <div className="font-semibold">
+                  Novo pedido da {mesa ? `Mesa ${mesa.id}` : 'mesa'}
+                </div>
+                {pedidoId && (
+                  <div className="flex space-x-2">
+                    <button 
+                      onClick={() => navegarParaImpressao(pedidoId, 'cozinha-pratos')}
+                      className="text-xs bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded mr-1"
+                    >
+                      Imprimir p/ Cozinha
+                    </button>
+                    <button 
+                      onClick={() => imprimirTodasNotas(pedidoId)}
+                      className="text-xs bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded"
+                    >
+                      Imprimir Tudo
+                    </button>
+                  </div>
+                )}
+              </div>
+              <div className="text-sm text-gray-500">
+                {formatarDataNotificacao(notificacao.created_at)}
+              </div>
+            </div>
+          );
+        }
+        
+        // Notificações de itens adicionados (formato alternativo)
+        if (notificacao.type === 'items_added' || 
+            notificacao.content.message?.includes('adicionados')) {
+          const pedidoId = notificacao.content.pedido_id || notificacao.entity_id;
+          
+          return (
+            <div>
+              <div className="flex items-center justify-between">
+                <div className="font-semibold">
+                  Itens adicionados ao pedido da {mesa ? `Mesa ${mesa.id}` : 'mesa'}
+                </div>
+                {pedidoId && (
+                  <div className="flex space-x-2">
+                    <button 
+                      onClick={() => navegarParaImpressao(pedidoId, 'somente-novos')}
+                      className="text-xs bg-amber-500 hover:bg-amber-600 text-white px-2 py-1 rounded"
+                    >
+                      Imprimir Novos Itens
+                    </button>
+                    <button 
+                      onClick={() => navegarParaImpressao(pedidoId, 'cozinha-pratos')}
+                      className="text-xs bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded"
+                    >
+                      Imprimir p/ Cozinha
+                    </button>
+                  </div>
+                )}
+              </div>
+              <div className="text-sm text-gray-500 mb-2">
+                {formatarDataNotificacao(notificacao.created_at)}
+              </div>
+            </div>
+          );
+        }
+      
+        // Fallback para qualquer outro tipo de notificação
         return (
           <div className="flex flex-col">
             <p>{notificacao.content.message}</p>
