@@ -359,44 +359,7 @@ export default function NotificacaoPanel() {
           </div>
         );
         
-      case TipoNotificacao.NOVO_PEDIDO:
-        const pedidoId = notificacao.content.pedido_id || notificacao.content.message;
-        // Use uma abordagem segura para encontrar o pedido
-        const pedido = notificacao.items && 
-          Array.isArray(notificacao.items) && 
-          notificacao.items.length > 0 ? 
-          notificacao.items[0].pedido : null;
-        
-        if (!pedido) return <div>Pedido não encontrado</div>;
-        
-        return (
-          <div>
-            <div className="flex items-center justify-between">
-              <div className="font-semibold">
-                Novo pedido da {mesa ? `Mesa ${mesa.id}` : 'mesa'}
-              </div>
-              <div className="flex space-x-2">
-                <button 
-                  onClick={() => navegarParaImpressao(pedidoId, 'cozinha-pratos')}
-                  className="text-xs bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded mr-1"
-                >
-                  Imprimir p/ Cozinha
-                </button>
-                <button 
-                  onClick={() => imprimirTodasNotas(pedidoId)}
-                  className="text-xs bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded"
-                >
-                  Imprimir Tudo
-                </button>
-              </div>
-            </div>
-            <div className="text-sm text-gray-500">
-              {format(new Date(pedido.criado_em), 'dd/MM/yyyy HH:mm', { locale: ptBR })}
-            </div>
-          </div>
-        );
-        
-      case TipoNotificacao.ITENS_ADICIONADOS:
+      case TipoNotificacao.ITEMS_ADICIONADOS:
         // Use uma versão segura para obter o pedido_id 
         const conteudoMsg = notificacao.content.message;
         const pedidoIdAdicionados = notificacao.content.pedido_id || 
