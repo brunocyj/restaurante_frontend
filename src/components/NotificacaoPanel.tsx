@@ -238,7 +238,7 @@ export default function NotificacaoPanel() {
     }
 
     // Informações básicas
-    const nomeRestaurante = '美滋滋烤肉 青岛';
+    const nomeRestaurante = '美滋滋';
     const endereco = 'RUA TAQUARI 934 MOOCA';
     const mesa = notificacao.content.mesa_id ? 
       `Mesa ${mesasCache[notificacao.content.mesa_id]?.id || notificacao.content.mesa_id}` : 

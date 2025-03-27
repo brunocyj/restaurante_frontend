@@ -17,7 +17,7 @@ export default function ImpressaoPage() {
   const [tiposCardapio, setTiposCardapio] = useState<TipoCardapio[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [nomeRestaurante, setNomeRestaurante] = useState('美滋滋烤串店');
+  const [nomeRestaurante, setNomeRestaurante] = useState('美滋滋');
   const [endereco, setEndereco] = useState('RUA TAQUARI 934 MOOCA');
   const [modoImpressao, setModoImpressao] = useState<'completo' | 'sem-precos'>('completo');
   const [filtroRecentes, setFiltroRecentes] = useState<boolean>(false);
