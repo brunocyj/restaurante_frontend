@@ -1,8 +1,8 @@
 import axios from 'axios';
 //xd
 // URL base da API - simplificada para usar o rewrite
-//export const API_URL = '/api';
-export const API_URL = 'http://localhost:8000';
+export const API_URL = '/api';
+//export const API_URL = 'http://localhost:8000';
 // Log para depuração
 console.log(`Ambiente: ${process.env.NODE_ENV}`);
 console.log(`URL da API configurada: ${API_URL}`);
