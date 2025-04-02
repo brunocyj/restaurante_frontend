@@ -8,6 +8,14 @@ export enum StatusPedido {
   CANCELADO = "CANCELADO"
 }
 
+export enum MetodoPagamento {
+  DINHEIRO = "DINHEIRO",
+  CARTAO_CREDITO = "CARTAO_CREDITO",
+  CARTAO_DEBITO = "CARTAO_DEBITO",
+  PIX = "PIX",
+  OUTROS = "OUTROS"
+}
+
 // Ajustado para corresponder ao backend
 export interface ItemPedido {
   id?: string;  // Pode ser opcional na criação
@@ -32,6 +40,7 @@ export interface Pedido {
   valor_total: number;
   criado_em: Date;
   manual?: boolean;
+  metodo_pagamento?: MetodoPagamento;
 }
 
 export const getPedidos = async () => {
@@ -81,6 +90,7 @@ export const updatePedido = async (
     status?: StatusPedido;
     observacao_geral?: string;
     mesa_id?: string;
+    metodo_pagamento?: MetodoPagamento;
   }
 ) => {
   try {

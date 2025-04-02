@@ -250,6 +250,14 @@ export default function ImpressaoPage() {
     return ' '.repeat(espacosEsquerda) + texto + ' '.repeat(Math.max(0, larguraMaxima - texto.length - espacosEsquerda));
   };
 
+  // Função para calcular desconto quando pagamento for em dinheiro
+  const calcularDescontoDinheiro = (valor: number) => {
+    if (pedidoSelecionado?.metodo_pagamento === 'DINHEIRO') {
+      return valor * 0.95; // 5% de desconto
+    }
+    return valor;
+  };
+
   // Modificar o método enviarParaImpressao para usar as novas configurações
   const enviarParaImpressao = () => {
     if (!pedidoSelecionado) return;
@@ -366,10 +374,24 @@ export default function ImpressaoPage() {
       
       // Total (apenas no modo completo)
       if (modoImpressao === 'completo') {
-        const totalStr = `TOTAL: R$ ${formatarPreco(pedidoSelecionado.valor_total)}`;
-        linhas.push(' '.repeat(margemLateral) + totalStr);
+        const valorTotal = pedidoSelecionado.valor_total;
+        const valorComDesconto = calcularDescontoDinheiro(valorTotal);
+        
+        if (pedidoSelecionado.metodo_pagamento === 'DINHEIRO') {
+          linhas.push(' '.repeat(margemLateral) + `Subtotal: R$ ${formatarPreco(valorTotal)}`);
+          linhas.push(' '.repeat(margemLateral) + 'Desconto: 5% (Pagamento em Dinheiro)');
+          linhas.push(' '.repeat(margemLateral) + `TOTAL: R$ ${formatarPreco(valorComDesconto)}`);
+        } else {
+          linhas.push(' '.repeat(margemLateral) + `TOTAL: R$ ${formatarPreco(valorTotal)}`);
+        }
       } else if (modoImpressao === 'sem-precos') {
         linhas.push(centralizar("*** COMANDA SEM PREÇOS ***"));
+      }
+      
+      // Método de pagamento
+      if (modoImpressao === 'completo' && pedidoSelecionado.metodo_pagamento) {
+        linhas.push('');
+        linhas.push(' '.repeat(margemLateral) + `Forma de Pagamento: ${pedidoSelecionado.metodo_pagamento.replace('_', ' ')}`);
       }
       
       // Observação geral
@@ -428,7 +450,7 @@ export default function ImpressaoPage() {
             }
             pre {
               font-family: monospace;
-              font-size: ${modoImpressao === 'sem-precos' ? '13pt' : '9pt'} !important;
+              font-size: ${modoImpressao === 'sem-precos' ? '9pt' : '9pt'} !important;
               font-weight: ${modoImpressao === 'sem-precos' ? 'bold' : 'normal'};
               white-space: pre;
               margin: 0;
@@ -880,9 +902,28 @@ export default function ImpressaoPage() {
               <div className="border-t border-b border-dashed border-gray-300 py-1 my-2"></div>
               
               {modoImpressao === 'completo' && (
-                <div className="flex justify-between font-bold">
-                  <span>TOTAL</span>
-                  <span>R$ {formatarPreco(pedidoSelecionado.valor_total)}</span>
+                <div className="flex flex-col font-bold">
+                  {pedidoSelecionado?.metodo_pagamento === 'DINHEIRO' ? (
+                    <>
+                      <div className="flex justify-between text-slate-600">
+                        <span>Subtotal</span>
+                        <span>R$ {formatarPreco(pedidoSelecionado.valor_total)}</span>
+                      </div>
+                      <div className="flex justify-between text-green-600 text-sm">
+                        <span>Desconto (5%)</span>
+                        <span>- R$ {formatarPreco(pedidoSelecionado.valor_total * 0.05)}</span>
+                      </div>
+                      <div className="flex justify-between text-amber-500 mt-2 text-lg">
+                        <span>TOTAL</span>
+                        <span>R$ {formatarPreco(pedidoSelecionado.valor_total * 0.95)}</span>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex justify-between text-amber-500">
+                      <span>TOTAL</span>
+                      <span>R$ {formatarPreco(pedidoSelecionado.valor_total)}</span>
+                    </div>
+                  )}
                 </div>
               )}
               

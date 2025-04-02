@@ -1,7 +1,6 @@
 import api from './api';
 
 export enum TipoNotificacao {
-  CHAMADA_ATENDENTE = 'waiter_call',
   ITEMS_ADICIONADOS = 'order_items_added',
   PEDIDO_FINALIZADO = 'order_finalized'
 }
@@ -17,6 +16,7 @@ export interface GrupoItensNotificacao {
   mesa_id: string;
   items: ItemNotificacao[];
   message: string;
+  metodo_pagamento?: string;
 }
 
 export interface Notificacao {
@@ -27,6 +27,7 @@ export interface Notificacao {
     mesa_id?: string;
     pedido_id?: string;
     message: string;
+    metodo_pagamento?: string;
   };
   items?: GrupoItensNotificacao[];
   count?: number;
@@ -71,19 +72,6 @@ export async function removerNotificacao(notificationId: string): Promise<boolea
   } catch (error) {
     console.error('Erro ao remover notificação:', error);
     return false;
-  }
-}
-
-/**
- * Chama atendente para uma mesa específica
- */
-export async function chamarAtendente(mesaId: string): Promise<{success: boolean, notification_id?: string}> {
-  try {
-    const response = await api.post(`/mesas/${mesaId}/chamar-atendente`);
-    return response.data;
-  } catch (error) {
-    console.error('Erro ao chamar atendente:', error);
-    return { success: false };
   }
 }
 

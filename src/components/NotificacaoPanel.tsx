@@ -8,15 +8,12 @@ import {
   TipoNotificacao,
   Notificacao,
   formatarDataNotificacao,
-  ItemNotificacao,
-  GrupoItensNotificacao
+  ItemNotificacao
 } from '@/lib/notificacao';
 import { getProdutoById, Produto } from '@/lib/cardapio';
 import { getMesaById, Mesa } from '@/lib/mesa';
 import { toast } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 
 interface ProdutoCache {
   [id: string]: Produto;
@@ -125,11 +122,6 @@ export default function NotificacaoPanel() {
           
           // Tocar som para novas notificações
           if (novasNotificacoes.length > 0) {
-            // Priorizar o som de chamada de atendente
-            const chamadaAtendente = novasNotificacoes.find(
-              n => n.type === TipoNotificacao.CHAMADA_ATENDENTE
-            );
-            
             // Carregar detalhes básicos das novas notificações
             for (const notificacao of novasNotificacoes) {
               // Buscar info da mesa
@@ -388,25 +380,6 @@ export default function NotificacaoPanel() {
     const mesa = notificacao.content.mesa_id ? mesasCache[notificacao.content.mesa_id] : null;
     
     switch (notificacao.type) {
-      case TipoNotificacao.CHAMADA_ATENDENTE:
-        return (
-          <div className="flex flex-col">
-            <div className="flex items-center">
-              <div className="h-3 w-3 rounded-full bg-red-500 mr-2 animate-pulse"></div>
-              <p className="text-red-500 font-semibold">Chamada de Atendente</p>
-            </div>
-            <p className="mt-1">
-              {mesa 
-                ? `Mesa ${mesa.id} chamou o atendente` 
-                : notificacao.content.message
-              }
-            </p>
-            <p className="text-sm text-slate-400 mt-1">
-              {formatarDataNotificacao(notificacao.created_at)}
-            </p>
-          </div>
-        );
-        
       case TipoNotificacao.ITEMS_ADICIONADOS:
         // Extrair todos os itens de produtos do formato aninhado
         const todosProdutos = notificacao.items?.flatMap(grupo => 
@@ -494,7 +467,7 @@ export default function NotificacaoPanel() {
             <p className="mt-1">
               {mesa 
                 ? `Mesa ${mesa.id} finalizou o pedido e pediu a conta` 
-                : notificacao.content.message
+                : notificacao.content.message + ` - metodo de pagamento: ${notificacao.content.metodo_pagamento}`
               }
             </p>
             <p className="text-sm text-slate-400 mt-1">

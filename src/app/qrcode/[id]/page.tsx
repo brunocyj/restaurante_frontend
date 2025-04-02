@@ -14,15 +14,14 @@ import {
 import { 
   createPedido, 
   getPedidosPorMesa, 
+  updatePedido, 
   adicionarItemAoPedido, 
-  atualizarStatusPedido, 
-  updatePedido,
-  StatusPedido,
-  Pedido
+  StatusPedido, 
+  Pedido,
+  MetodoPagamento
 } from '@/lib/pedido';
-import { chamarAtendente as chamarAtendenteApi } from '@/lib/notificacao';
 import Image from 'next/image';
-import { toast, Toaster } from 'react-hot-toast';
+import { Toaster } from 'react-hot-toast';
 
 // Interface para o carrinho de compras
 interface ItemCarrinho {
@@ -62,8 +61,9 @@ export default function QRCodePage() {
   const [sucessoEnvio, setSucessoEnvio] = useState<string | null>(null);
   const [showAcoesModal, setShowAcoesModal] = useState(false);
   const [observacaoGeral, setObservacaoGeral] = useState('');
-  const [chamandoAtendente, setChamandoAtendente] = useState(false);
   const [pedindoConta, setPedindoConta] = useState(false);
+  const [showPagamentoModal, setShowPagamentoModal] = useState(false);
+  const [metodoPagamentoSelecionado, setMetodoPagamentoSelecionado] = useState<MetodoPagamento | null>(null);
   
   // Estados para controle de modais
   const [showPedidoModal, setShowPedidoModal] = useState(false);
@@ -404,31 +404,6 @@ export default function QRCodePage() {
     }
   };
   
-  // Função para chamar atendente
-  const chamarAtendente = async () => {
-    try {
-      setChamandoAtendente(true);
-      
-      // Chamar o atendente usando a API
-      const resultado = await chamarAtendenteApi(mesaId);
-      
-      if (resultado.success) {
-        // Mostrar mensagem de sucesso
-        toast.success('Atendente chamado com sucesso!');
-        
-        // Fechar modal de ações
-        setShowAcoesModal(false);
-      } else {
-        throw new Error('Falha ao chamar atendente');
-      }
-    } catch (error) {
-      console.error('Erro ao chamar atendente:', error);
-      toast.error('Erro ao chamar atendente. Tente novamente.');
-    } finally {
-      setChamandoAtendente(false);
-    }
-  };
-  
   // Função para pedir a conta
   const pedirConta = async () => {
     try {
@@ -438,8 +413,18 @@ export default function QRCodePage() {
         throw new Error('Não há pedido ativo para encerrar');
       }
       
-      // Atualizar o status do pedido para finalizado
-      await atualizarStatusPedido(pedidoAtual.id, StatusPedido.FINALIZADO);
+      // Verificar se o método de pagamento foi selecionado
+      if (!metodoPagamentoSelecionado) {
+        setShowPagamentoModal(true);
+        setPedindoConta(false);
+        return;
+      }
+      
+      // Atualizar o status do pedido para finalizado e incluir método de pagamento
+      await updatePedido(pedidoAtual.id, {
+        status: StatusPedido.FINALIZADO,
+        metodo_pagamento: metodoPagamentoSelecionado
+      });
       
       // Buscar os dados atualizados do pedido
       await atualizarDados();
@@ -475,6 +460,14 @@ export default function QRCodePage() {
       }, 3000);
     } finally {
       setPedindoConta(false);
+    }
+  };
+  
+  // Função para confirmar o pagamento com o método selecionado
+  const confirmarPagamento = async () => {
+    setShowPagamentoModal(false);
+    if (metodoPagamentoSelecionado) {
+      await pedirConta();
     }
   };
   
@@ -953,29 +946,6 @@ export default function QRCodePage() {
               
               <div className="mt-6 space-y-4">
                 <button 
-                  onClick={chamarAtendente}
-                  disabled={chamandoAtendente}
-                  className="flex w-full items-center justify-center space-x-2 rounded-md bg-blue-600 py-3 px-4 text-center font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-                >
-                  {chamandoAtendente ? (
-                    <>
-                      <svg className="h-5 w-5 animate-spin text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      <span>Chamando...</span>
-                    </>
-                  ) : (
-                    <>
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                      </svg>
-                      <span>Chamar Atendente</span>
-                    </>
-                  )}
-                </button>
-                
-                <button 
                   onClick={pedirConta}
                   disabled={pedindoConta || !pedidoAtual}
                   className="flex w-full items-center justify-center space-x-2 rounded-md bg-green-600 py-3 px-4 text-center font-medium text-white hover:bg-green-700 disabled:opacity-50"
@@ -1131,21 +1101,71 @@ export default function QRCodePage() {
               <div className="grid grid-cols-2 gap-3">
                 <button 
                   onClick={() => {
-                    chamarAtendente();
-                    setShowPedidoModal(false);
-                  }}
-                  className="rounded-md bg-blue-600 py-2 px-4 text-center font-medium text-white hover:bg-blue-700"
-                >
-                  Chamar Atendente
-                </button>
-                <button 
-                  onClick={() => {
-                    pedirConta();
+                    setMetodoPagamentoSelecionado(null);
+                    setShowPagamentoModal(true);
                     setShowPedidoModal(false);
                   }}
                   className="rounded-md bg-green-600 py-2 px-4 text-center font-medium text-white hover:bg-green-700"
                 >
                   Pedir a Conta
+                </button>
+                <button 
+                  onClick={() => setShowPedidoModal(false)}
+                  className="rounded-md bg-slate-700 py-2 px-4 text-center font-medium text-white hover:bg-slate-600"
+                >
+                  Fechar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Modal para seleção de método de pagamento */}
+      {showPagamentoModal && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black bg-opacity-75 sm:items-center">
+          <div className="w-full max-w-md rounded-t-lg bg-slate-900 shadow-xl sm:rounded-lg">
+            <div className="p-4 border-b border-slate-800 flex items-center justify-between">
+              <h3 className="text-lg font-medium text-white">Selecione o método de pagamento</h3>
+              <button 
+                onClick={() => setShowPagamentoModal(false)}
+                className="rounded-full bg-slate-800 p-1 text-slate-400 hover:text-white"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <div className="p-4">
+              <div className="space-y-3">
+                {Object.values(MetodoPagamento).map((metodo) => (
+                  <button
+                    key={metodo}
+                    onClick={() => setMetodoPagamentoSelecionado(metodo)}
+                    className={`w-full p-3 rounded-md flex items-center justify-between ${
+                      metodoPagamentoSelecionado === metodo 
+                        ? 'bg-amber-500/20 border border-amber-500 text-amber-400' 
+                        : 'bg-slate-800 border border-slate-700 text-white hover:bg-slate-700'
+                    }`}
+                  >
+                    <span>{metodo.replace('_', ' ')}</span>
+                    {metodoPagamentoSelecionado === metodo && (
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                  </button>
+                ))}
+              </div>
+              
+              <div className="mt-6">
+                <button
+                  onClick={confirmarPagamento}
+                  disabled={!metodoPagamentoSelecionado}
+                  className="w-full rounded-md bg-green-600 py-3 px-4 text-center font-medium text-white hover:bg-green-700 disabled:opacity-50"
+                >
+                  Confirmar e Finalizar Pedido
                 </button>
               </div>
             </div>
