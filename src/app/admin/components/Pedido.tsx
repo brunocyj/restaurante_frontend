@@ -903,7 +903,7 @@ export default function Pedido() {
                       >
                         Ver
                       </button>
-                      {(pedido.status === StatusPedido.ABERTO || pedido.status === StatusPedido.EM_ANDAMENTO) && (
+                      {(pedido.status === StatusPedido.ABERTO || pedido.status === StatusPedido.EM_ANDAMENTO || pedido.status === StatusPedido.FINALIZADO) && (
                         <>
                           <button 
                             onClick={() => handleOpenEditModal(pedido)}
