@@ -301,13 +301,22 @@ export default function QRCodePage() {
     
     // Filtrar categorias
     return Object.entries(categoriasAgrupadas)
-      .filter(([tipoId]) => {
-        const nomeTipo = tiposCardapio[tipoId]?.toLowerCase();
-        return nomeTipo !== tipoExcluido;
-      })
-      .flatMap(([, cats]) => cats)
-      .sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
-  };
+    .flatMap(([tipoId, cats]) => {
+      const nomeTipo = tiposCardapio[tipoId]?.toLowerCase();
+
+      // Se o tipo for o excluído, só mantém categorias que começam com "Espeto" ou "Espetos"
+      if (nomeTipo === tipoExcluido) {
+        return cats.filter(categoria =>
+          categoria.nome.toLowerCase().startsWith('espeto') ||
+          categoria.nome.toLowerCase().startsWith('espetos')
+        );
+      }
+
+      // Se não for o tipo excluído, mantém todas as categorias
+      return cats;
+    })
+    .sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
+};
   
   // Obter produtos da categoria ativa
   const getProdutosPorCategoria = (categoriaId: string | null) => {
