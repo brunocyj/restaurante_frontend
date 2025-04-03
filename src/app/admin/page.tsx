@@ -133,6 +133,12 @@ export default function AdminPage() {
             >
               Impressão
             </Link>
+            <Link
+              href="/admin/entrega"
+              className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-slate-900"
+            >
+              Entrega
+            </Link>
             <span className="text-sm text-slate-400">
               Olá, <span className="font-medium text-slate-200">{userData?.username}</span>
             </span>
