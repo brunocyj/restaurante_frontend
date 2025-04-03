@@ -347,19 +347,31 @@ export default function ImpressaoPage() {
           
           // Descrição e observações em linhas separadas com recuo
           if (descricao) {
-            const recuo = margemLateral + 2;
-            const descricaoFormatada = ' '.repeat(recuo) + descricao;
-            linhas.push(descricaoFormatada.length > larguraMaxima 
-              ? descricaoFormatada.substring(0, larguraMaxima - 3) + '...' 
-              : descricaoFormatada);
+            // Centralizar a descrição do produto
+            const espacoDisponivel = larguraMaxima - 6; // 6 para dar margem de segurança
+            
+            // Se o texto for maior que o espaço, truncar com reticências
+            const descAjustada = descricao.length > espacoDisponivel 
+              ? descricao.substring(0, espacoDisponivel - 3) + '...' 
+              : descricao;
+            
+            // Usar a função de centralizar para posicionar o texto
+            linhas.push(centralizar(descAjustada));
           }
           
           if (item.observacoes) {
-            const recuo = margemLateral + 2;
-            const obsFormatada = ' '.repeat(recuo) + `Obs: ${item.observacoes}`;
-            linhas.push(obsFormatada.length > larguraMaxima 
-              ? obsFormatada.substring(0, larguraMaxima - 3) + '...' 
-              : obsFormatada);
+            // Centralizar as observações para evitar corte nas laterais
+            const obsTexto = `Obs: ${item.observacoes}`;
+            // Calcular espaço disponível depois de considerar a margem
+            const espacoDisponivel = larguraMaxima - 6; // 6 para dar mais margem de segurança
+            
+            // Se o texto for maior que o espaço, truncar com reticências
+            const obsAjustada = obsTexto.length > espacoDisponivel 
+              ? obsTexto.substring(0, espacoDisponivel - 3) + '...' 
+              : obsTexto;
+            
+            // Usar a função de centralizar para posicionar o texto
+            linhas.push(centralizar(obsAjustada));
           }
         });
         
@@ -397,8 +409,27 @@ export default function ImpressaoPage() {
       // Observação geral
       if (pedidoSelecionado.observacao_geral) {
         linhas.push('');
-        linhas.push(' '.repeat(margemLateral) + 'Observações:');
-        linhas.push(' '.repeat(margemLateral) + pedidoSelecionado.observacao_geral);
+        linhas.push(centralizar('--- OBSERVAÇÕES ---'));
+        
+        // Dividir as observações gerais em linhas para melhor visualização
+        const observacoes = pedidoSelecionado.observacao_geral.split('\n');
+        
+        observacoes.forEach(obs => {
+          // Calcular espaço disponível considerando margem de segurança
+          const espacoDisponivel = larguraMaxima - 6;
+          
+          // Se a linha for muito longa, dividir em múltiplas linhas
+          if (obs.length > espacoDisponivel) {
+            // Dividir em pedaços de tamanho apropriado
+            for (let i = 0; i < obs.length; i += espacoDisponivel - 3) {
+              const parte = obs.substring(i, i + espacoDisponivel - 3);
+              linhas.push(centralizar(parte));
+            }
+          } else {
+            // A linha cabe em uma única linha
+            linhas.push(centralizar(obs));
+          }
+        });
       }
       
       // Finalização
@@ -699,8 +730,8 @@ export default function ImpressaoPage() {
                   <span className="text-sm text-slate-300 mr-2">Margem lateral:</span>
                   <input
                     type="range"
-                    min="3"
-                    max="3"
+                    min="2"
+                    max="6"
                     value={margemLateral}
                     onChange={(e) => setMargemLateral(parseInt(e.target.value))}
                     className="w-24 h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer"
