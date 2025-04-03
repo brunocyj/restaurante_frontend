@@ -13,13 +13,9 @@ import {
 import { 
   createPedido, 
   getPedidosPorMesa, 
-  updatePedido, 
-  adicionarItemAoPedido,
-  removerItemDoPedido,
-  atualizarItemDoPedido, 
+  updatePedido,
   StatusPedido, 
-  Pedido,
-  MetodoPagamento
+  Pedido
 } from '@/lib/pedido';
 import { Toaster, toast } from 'react-hot-toast';
 import { getMesaById } from '@/lib/mesa';
@@ -51,7 +47,6 @@ export default function EntregaPage() {
   const [tipoCardapio, setTipoCardapio] = useState<TipoCardapio | null>(null);
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [categoriasAgrupadas, setCategoriasAgrupadas] = useState<{[key: string]: Categoria[]}>({});
-  const [tiposCardapio, setTiposCardapio] = useState<{[key: string]: string}>({});
   
   // Estados para controle da interface
   const [isLoading, setIsLoading] = useState(true);
@@ -79,8 +74,7 @@ export default function EntregaPage() {
   
   // Estados para modos de visualização
   const [modoCriacao, setModoCriacao] = useState(true);
-  const [modoEdicao, setModoEdicao] = useState(false);
-  
+
   // Carregar dados iniciais do cardápio e pedidos de entrega
   useEffect(() => {
     carregarDados();
@@ -134,8 +128,8 @@ export default function EntregaPage() {
           try {
             const tipoInfo = await getTipoCardapioById(categoria.tipo_cardapio_id);
             tiposNomes[categoria.tipo_cardapio_id] = tipoInfo.nome;
-          } catch (err) {
-            console.error(`Erro ao buscar tipo de cardápio ${categoria.tipo_cardapio_id}:`, err);
+          } catch (_) {
+            console.error(`Erro ao buscar tipo de cardápio ${categoria.tipo_cardapio_id}:`, _);
             tiposNomes[categoria.tipo_cardapio_id] = 'Desconhecido';
           }
         }
@@ -149,7 +143,6 @@ export default function EntregaPage() {
       }
       
       setCategoriasAgrupadas(agrupamento);
-      setTiposCardapio(tiposNomes);
       
       // Buscar a mesa de entrega para obter o tipo de cardápio principal (se existir)
       try {
@@ -175,7 +168,7 @@ export default function EntregaPage() {
           try {
             const tipoCardapioData = await getTipoCardapioById(primeiroTipoId);
             setTipoCardapio(tipoCardapioData);
-          } catch (e) {
+          } catch (_) {
             toast.error('Não foi possível carregar o cardápio');
           }
         }
@@ -323,8 +316,8 @@ export default function EntregaPage() {
       .filter(produto => produto.categoria_id === categoriaId && produto.ativo)
       .sort((a, b) => {
         // Usar uma ordenação básica já que ordem não é uma propriedade padrão
-        const ordemA = (a as any).ordem || 0;
-        const ordemB = (b as any).ordem || 0;
+        const ordemA = (a as unknown as { ordem?: number }).ordem || 0;
+        const ordemB = (b as unknown as { ordem?: number }).ordem || 0;
         return ordemA - ordemB;
       });
   };
@@ -563,8 +556,8 @@ export default function EntregaPage() {
               <div className="flex space-x-2">
                 {filtrarCategorias().map((categoria) => (
                   <button
-                    key={categoria.id}
-                    onClick={() => setCategoriaAtiva(categoria.id)}
+                    key={categoria.id || ''}
+                    onClick={() => categoria.id && setCategoriaAtiva(categoria.id)}
                     className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
                       categoriaAtiva === categoria.id
                         ? 'bg-emerald-600 text-white'
