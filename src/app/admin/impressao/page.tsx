@@ -229,7 +229,7 @@ export default function ImpressaoPage() {
       else if (tipoNome === 'hotpot' || categoriaNome.includes('hotpot')) {
         grupos[GRUPO_HOTPOT].itens.push(item);
       }
-      else if (categoriaNome.includes('espeto') || categoriaNome.includes('espetos')) {
+      else if (categoriaNome.includes('炸串') || categoriaNome.includes('烤串肉类')) {
         grupos[GRUPO_ESPETOS].itens.push(item);
       }
       else {

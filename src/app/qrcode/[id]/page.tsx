@@ -45,9 +45,9 @@ enum AbaPrincipal {
 
 // Lista de categorias especiais que pertencem a "Pratos Especiais"
 const CATEGORIAS_PRATOS_ESPECIAIS = [
-  'Pratos Especiais',
-  'Pratos Sazonais', 
-  'Frutos do mar'
+  '特色菜品',
+  '时令菜', 
+  '海鲜美食'
 ];
 
 export default function QRCodePage() {
@@ -352,12 +352,12 @@ export default function QRCodePage() {
   // Obter nome amigável para exibição da aba
   const getNomeAba = (aba: AbaPrincipal) => {
     switch (aba) {
-      case AbaPrincipal.HOTPOT: return 'Hotpot';
-      case AbaPrincipal.PRATOS_ESPECIAIS: return 'Pratos Especiais';
-      case AbaPrincipal.ESPETOS: return 'Espetos';
-      case AbaPrincipal.PRATOS_NORMAIS: return 'Pratos Normais';
-      case AbaPrincipal.BEBIDAS: return 'Bebidas';
-      case AbaPrincipal.SOBREMESAS: return 'Sobremesas';
+      case AbaPrincipal.HOTPOT: return '火锅-Hotpot';
+      case AbaPrincipal.PRATOS_ESPECIAIS: return '特色菜品-Pratos Especiais';
+      case AbaPrincipal.ESPETOS: return '烤串-Espetos';
+      case AbaPrincipal.PRATOS_NORMAIS: return '其他菜品-Pratos Normais';
+      case AbaPrincipal.BEBIDAS: return '饮料-Bebidas';
+      case AbaPrincipal.SOBREMESAS: return '甜品-Sobremesas';
       default: return 'Desconhecido';
     }
   };
@@ -436,8 +436,8 @@ export default function QRCodePage() {
         // Categorias que começam com "Espeto" ou "Espetos"
         return Object.entries(categoriasAgrupadas)
           .flatMap(([_, cats]) => cats.filter(cat => 
-            cat.nome.toLowerCase().startsWith('espeto') || 
-            cat.nome.toLowerCase().startsWith('espetos')
+            cat.nome.toLowerCase().startsWith('烤串肉类') || 
+            cat.nome.toLowerCase().startsWith('炸串')
           ))
           .sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
           
@@ -451,8 +451,8 @@ export default function QRCodePage() {
               cat.nome.toLowerCase().includes(nome.toLowerCase())
             ) &&
             // Excluir categorias de espetos
-            !cat.nome.toLowerCase().startsWith('espeto') && 
-            !cat.nome.toLowerCase().startsWith('espetos')
+            !cat.nome.toLowerCase().startsWith('烤串肉类') && 
+            !cat.nome.toLowerCase().startsWith('炸串')
           ))
           .sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
           
@@ -803,6 +803,9 @@ export default function QRCodePage() {
                     }`}
                   >
                     {subcategoria.nome}
+                    {subcategoria.descricao && (
+                      <span className="ml-1 text-xs opacity-90"> - {subcategoria.descricao}</span>
+                    )}
                   </button>
                 ))}
               </div>
@@ -821,6 +824,9 @@ export default function QRCodePage() {
                         }`}
                       >
                         {subcategoria.nome}
+                        {subcategoria.descricao && (
+                          <span className="ml-1 text-xs opacity-90"> - {subcategoria.descricao}</span>
+                        )}
                       </button>
                     </li>
                   ))}
@@ -836,7 +842,19 @@ export default function QRCodePage() {
           {categoriaAtiva && (
             <div className="bg-slate-900 border border-slate-800 rounded-lg p-3 mb-4">
               <h2 className="text-lg font-medium text-white">
-                {subcategorias.find(c => c.id === categoriaAtiva)?.nome || 'Produtos'}
+                {(() => {
+                  const categoria = subcategorias.find(c => c.id === categoriaAtiva);
+                  if (!categoria) return 'Produtos';
+                  
+                  return (
+                    <>
+                      {categoria.nome}
+                      {categoria.descricao && (
+                        <span className="ml-2 text-sm text-amber-400"> - {categoria.descricao}</span>
+                      )}
+                    </>
+                  );
+                })()}
               </h2>
             </div>
           )}
