@@ -33,6 +33,23 @@ interface ItemCarrinho {
   };
 }
 
+// Enums para abas de navegação
+enum AbaPrincipal {
+  HOTPOT = 'hotpot',
+  PRATOS_ESPECIAIS = 'pratos_especiais',
+  ESPETOS = 'espetos',
+  PRATOS_NORMAIS = 'pratos_normais',
+  BEBIDAS = 'bebidas',
+  SOBREMESAS = 'sobremesas'
+}
+
+// Lista de categorias especiais que pertencem a "Pratos Especiais"
+const CATEGORIAS_PRATOS_ESPECIAIS = [
+  'Pratos Especiais',
+  'Pratos Sazonais', 
+  'Frutos do mar'
+];
+
 export default function QRCodePage() {
   const params = useParams();
   const mesaId = params.id as string;
@@ -73,26 +90,38 @@ export default function QRCodePage() {
   const [tipoMensagem, setTipoMensagem] = useState<'sucesso' | 'erro'>('sucesso');
   const [showMensagem, setShowMensagem] = useState(false);
   
+  // Estados para controle da nova navegação
+  const [abaPrincipalAtiva, setAbaPrincipalAtiva] = useState<AbaPrincipal | null>(null);
+  const [subcategorias, setSubcategorias] = useState<Categoria[]>([]);
+  
   // Efeito para garantir que uma categoria seja selecionada automaticamente
   useEffect(() => {
     // Se já temos categorias e tipo de cardápio definido
     if (Object.keys(categoriasAgrupadas).length > 0 && tipoCardapio) {
-      // Obter categorias filtradas específicas para o tipo de cardápio atual
-      const categoriasFiltradas = filtrarCategorias();
-      console.log("Categorias filtradas para cardápio", tipoCardapio.nome, ":", categoriasFiltradas.map(c => c.nome));
+      // Definir aba principal padrão com base no tipo de cardápio
+      if (!abaPrincipalAtiva) {
+        const abaInicial = tipoCardapio.nome.toLowerCase() === 'hotpot' 
+          ? AbaPrincipal.HOTPOT 
+          : AbaPrincipal.PRATOS_NORMAIS;
+        setAbaPrincipalAtiva(abaInicial);
+      }
       
-      // Verificar se a categoria ativa atual não existe nas categorias filtradas
-      const categoriaAtivaValida = categoriaAtiva && categoriasFiltradas.some(c => c.id === categoriaAtiva);
-      
-      // Se não temos categoria ativa ou a atual não é válida para este tipo de cardápio
-      if (!categoriaAtiva || !categoriaAtivaValida) {
-        if (categoriasFiltradas.length > 0 && categoriasFiltradas[0].id) {
-          console.log("Selecionando categoria automaticamente:", categoriasFiltradas[0].nome);
-          setCategoriaAtiva(categoriasFiltradas[0].id);
+      // Atualizar subcategorias quando a aba principal muda
+      if (abaPrincipalAtiva) {
+        const subcategoriasAba = getSubcategoriasPorAba(abaPrincipalAtiva);
+        setSubcategorias(subcategoriasAba);
+        
+        // Selecionar primeira subcategoria se não houver categoria ativa ou se a categoria ativa não pertencer às subcategorias atuais
+        if (subcategoriasAba.length > 0) {
+          const categoriaAtivaValida = categoriaAtiva && subcategoriasAba.some(c => c.id === categoriaAtiva);
+          if (!categoriaAtiva || !categoriaAtivaValida) {
+            console.log("Selecionando subcategoria automaticamente:", subcategoriasAba[0].nome);
+            setCategoriaAtiva(subcategoriasAba[0].id || null);
+          }
         }
       }
     }
-  }, [categoriasAgrupadas, tipoCardapio, categoriaAtiva]);
+  }, [categoriasAgrupadas, tipoCardapio, abaPrincipalAtiva, categoriaAtiva]);
   
   // Carregar dados da mesa e do cardápio
   useEffect(() => {
@@ -290,6 +319,160 @@ export default function QRCodePage() {
       style: 'currency',
       currency: 'BRL'
     });
+  };
+  
+  // Obter abas principais disponíveis com base no tipo de cardápio
+  const getAbasPrincipais = () => {
+    if (!tipoCardapio) return [];
+    
+    const tipoCardapioNome = tipoCardapio.nome.toLowerCase();
+    
+    // Abas para cardápio hotpot
+    if (tipoCardapioNome === 'hotpot') {
+      return [
+        AbaPrincipal.HOTPOT,
+        AbaPrincipal.PRATOS_ESPECIAIS, 
+        AbaPrincipal.ESPETOS,
+        AbaPrincipal.PRATOS_NORMAIS,
+        AbaPrincipal.BEBIDAS,
+        AbaPrincipal.SOBREMESAS
+      ];
+    }
+    
+    // Abas para cardápio normal
+    return [
+      AbaPrincipal.PRATOS_NORMAIS,
+      AbaPrincipal.PRATOS_ESPECIAIS,
+      AbaPrincipal.ESPETOS,
+      AbaPrincipal.BEBIDAS,
+      AbaPrincipal.SOBREMESAS
+    ];
+  };
+  
+  // Obter nome amigável para exibição da aba
+  const getNomeAba = (aba: AbaPrincipal) => {
+    switch (aba) {
+      case AbaPrincipal.HOTPOT: return 'Hotpot';
+      case AbaPrincipal.PRATOS_ESPECIAIS: return 'Pratos Especiais';
+      case AbaPrincipal.ESPETOS: return 'Espetos';
+      case AbaPrincipal.PRATOS_NORMAIS: return 'Pratos Normais';
+      case AbaPrincipal.BEBIDAS: return 'Bebidas';
+      case AbaPrincipal.SOBREMESAS: return 'Sobremesas';
+      default: return 'Desconhecido';
+    }
+  };
+  
+  // Obter ícone para cada aba principal
+  const getIconeAba = (aba: AbaPrincipal) => {
+    switch (aba) {
+      case AbaPrincipal.HOTPOT:
+        return (
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>
+        );
+      case AbaPrincipal.PRATOS_ESPECIAIS:
+        return (
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+          </svg>
+        );
+      case AbaPrincipal.ESPETOS:
+        return (
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+          </svg>
+        );
+      case AbaPrincipal.PRATOS_NORMAIS:
+        return (
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+          </svg>
+        );
+      case AbaPrincipal.BEBIDAS:
+        return (
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+          </svg>
+        );
+      case AbaPrincipal.SOBREMESAS:
+        return (
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+          </svg>
+        );
+      default:
+        return null;
+    }
+  };
+  
+  // Obter subcategorias para a aba principal selecionada
+  const getSubcategoriasPorAba = (aba: AbaPrincipal): Categoria[] => {
+    if (!tipoCardapio) return [];
+    
+    // Preparar arrays vazios para retorno quando não há subcategorias
+    const vazias: Categoria[] = [];
+    
+    switch (aba) {
+      case AbaPrincipal.HOTPOT:
+        // Todas as categorias do tipo hotpot
+        return Object.entries(categoriasAgrupadas)
+          .filter(([tipoId, _]) => tiposCardapio[tipoId]?.toLowerCase() === 'hotpot')
+          .flatMap(([_, cats]) => cats)
+          .sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
+          
+      case AbaPrincipal.PRATOS_ESPECIAIS:
+        // Categorias específicas do tipo normal que são consideradas "especiais"
+        return Object.entries(categoriasAgrupadas)
+          .filter(([tipoId, _]) => tiposCardapio[tipoId]?.toLowerCase() === 'normal')
+          .flatMap(([_, cats]) => cats.filter(cat => 
+            CATEGORIAS_PRATOS_ESPECIAIS.some(nome => 
+              cat.nome.toLowerCase().includes(nome.toLowerCase())
+            )
+          ))
+          .sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
+          
+      case AbaPrincipal.ESPETOS:
+        // Categorias que começam com "Espeto" ou "Espetos"
+        return Object.entries(categoriasAgrupadas)
+          .flatMap(([_, cats]) => cats.filter(cat => 
+            cat.nome.toLowerCase().startsWith('espeto') || 
+            cat.nome.toLowerCase().startsWith('espetos')
+          ))
+          .sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
+          
+      case AbaPrincipal.PRATOS_NORMAIS:
+        // Categorias do tipo normal, exceto as categorias especiais e espetos
+        return Object.entries(categoriasAgrupadas)
+          .filter(([tipoId, _]) => tiposCardapio[tipoId]?.toLowerCase() === 'normal')
+          .flatMap(([_, cats]) => cats.filter(cat => 
+            // Excluir categorias especiais
+            !CATEGORIAS_PRATOS_ESPECIAIS.some(nome => 
+              cat.nome.toLowerCase().includes(nome.toLowerCase())
+            ) &&
+            // Excluir categorias de espetos
+            !cat.nome.toLowerCase().startsWith('espeto') && 
+            !cat.nome.toLowerCase().startsWith('espetos')
+          ))
+          .sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
+          
+      case AbaPrincipal.BEBIDAS:
+        // Todas as categorias do tipo bebidas
+        return Object.entries(categoriasAgrupadas)
+          .filter(([tipoId, _]) => tiposCardapio[tipoId]?.toLowerCase() === 'bebidas')
+          .flatMap(([_, cats]) => cats)
+          .sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
+          
+      case AbaPrincipal.SOBREMESAS:
+        // Todas as categorias do tipo sobremesas
+        return Object.entries(categoriasAgrupadas)
+          .filter(([tipoId, _]) => tiposCardapio[tipoId]?.toLowerCase() === 'sobremesas')
+          .flatMap(([_, cats]) => cats)
+          .sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
+          
+      default:
+        return vazias;
+    }
   };
   
   // Filtrar categorias com base no tipo de cardápio
@@ -576,17 +759,21 @@ export default function QRCodePage() {
         {/* Navegação de categorias */}
         <div className="border-t border-slate-800 bg-slate-900 overflow-x-auto">
           <div className="flex space-x-2 px-4 py-2">
-            {categoriasFiltradas.map(categoria => (
+            {getAbasPrincipais().map((aba) => (
               <button
-                key={categoria.id}
-                onClick={() => categoria.id && setCategoriaAtiva(categoria.id)}
+                key={aba}
+                onClick={() => {
+                  setAbaPrincipalAtiva(aba);
+                  // Resetar categoria ativa ao mudar de aba
+                  setCategoriaAtiva(null);
+                }}
                 className={`whitespace-nowrap rounded-full px-3 py-1 text-sm font-medium ${
-                  categoriaAtiva === categoria.id
+                  abaPrincipalAtiva === aba
                     ? 'bg-amber-500 text-white'
                     : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
                 }`}
               >
-                {categoria.nome}
+                {getNomeAba(aba)}
               </button>
             ))}
           </div>
@@ -594,103 +781,163 @@ export default function QRCodePage() {
       </header>
       
       {/* Conteúdo principal */}
-      <main className="mx-auto max-w-7xl px-4 py-6">
-        {/* Lista de produtos */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {getProdutosPorCategoria(categoriaAtiva).map(produto => (
-            <div 
-              key={produto.id} 
-              onClick={() => {
-                setProdutoModal(produto);
-                setQuantidadeModal(1);
-                setObservacoesModal('');
-              }}
-              className="cursor-pointer rounded-lg border border-slate-800 bg-slate-900 p-4 shadow-md transition-transform hover:scale-[1.02]"
-            >
-              <div className="flex flex-row items-center gap-3">
-                <div className="flex-1">
-                  <h3 className="text-lg font-medium text-white">{produto.nome}</h3>
-                  
-                  {produto && 'descricao' in produto && produto['descricao'] && (
-                    <p className="mt-1 text-sm text-slate-400 line-clamp-2">
-                      {produto['descricao']}
-                    </p>
-                  )}
-                  
-                  <div className="mt-3">
-                    <p className="text-lg font-bold text-amber-500">{formatarPreco(produto.preco)}</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-2">
-                  {produto.imagem_url && (
-                    <div className="w-24 h-24 flex-shrink-0">
-                      <div className="h-full w-full overflow-hidden rounded-md bg-slate-800 flex items-center justify-center relative">
-                        {(() => {
-                          try {
-                            return (
-                              <Image 
-                                src={produto.imagem_url}
-                                alt={produto.nome} 
-                                fill
-                                sizes="96px"
-                                className="object-cover"
-                                quality={80}
-                                priority={false}
-                                onError={(e) => {
-                                  console.error(`Erro ao carregar imagem para o produto ${produto.id}:`, produto.imagem_url);
-                                  const target = e.target as HTMLImageElement;
-                                  target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' className='h-12 w-12 text-slate-500' fill='none' viewBox='0 0 24 24' stroke='%236B7280'%3E%3Cpath strokeLinecap='round' strokeLinejoin='round' strokeWidth='2' d='M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z' /%3E%3C/svg%3E";
-                                }}
-                                unoptimized={produto.imagem_url.startsWith('http://') || !produto.imagem_url.includes('meizizi.com.br')}
-                              />
-                            );
-                          } catch (error) {
-                            console.error(`Erro ao renderizar imagem para o produto ${produto.id}:`, error);
-                            return (
-                              <div className="h-full w-full flex items-center justify-center bg-slate-800">
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                </svg>
-                              </div>
-                            );
-                          }
-                        })()}
-                      </div>
-                    </div>
-                  )}
-                  
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      const item = carrinho.find(item => item.produto_id === produto.id);
-                      if (item) {
-                        atualizarQuantidade(produto.id!, item.quantidade + 1);
-                      } else {
-                        setCarrinho([...carrinho, {
-                          produto_id: produto.id!,
-                          quantidade: 1,
-                          produto
-                        }]);
-                      }
-                    }}
-                    className="rounded-full bg-amber-500 p-2 text-white hover:bg-amber-600 flex-shrink-0"
+      <main className="mx-auto max-w-7xl px-0 sm:px-4 py-6 flex flex-col md:flex-row">
+        {/* Barra lateral de subcategorias - visível se houver subcategorias */}
+        {subcategorias.length > 0 && (
+          <div className="w-full md:w-56 md:flex-shrink-0 md:pr-4 mb-4 md:mb-0">
+            <div className="bg-slate-900 border border-slate-800 rounded-lg overflow-hidden">
+              <div className="px-4 py-3 border-b border-slate-800 bg-slate-800/50">
+                <h3 className="text-white font-medium">{abaPrincipalAtiva ? getNomeAba(abaPrincipalAtiva) : 'Categorias'}</h3>
+              </div>
+              
+              {/* Subcategorias na versão mobile - seleção horizontal */}
+              <div className="flex overflow-x-auto px-2 py-2 md:hidden">
+                {subcategorias.map((subcategoria) => (
+                  <button
+                    key={subcategoria.id}
+                    onClick={() => subcategoria.id && setCategoriaAtiva(subcategoria.id)}
+                    className={`whitespace-nowrap rounded-full px-3 py-1 text-sm font-medium mr-1 ${
+                      categoriaAtiva === subcategoria.id
+                        ? 'bg-amber-500 text-white'
+                        : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                    }`}
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                    </svg>
+                    {subcategoria.nome}
                   </button>
-                </div>
+                ))}
+              </div>
+              
+              {/* Subcategorias na versão desktop - listagem vertical */}
+              <div className="hidden md:block">
+                <ul className="py-2">
+                  {subcategorias.map((subcategoria) => (
+                    <li key={subcategoria.id}>
+                      <button
+                        onClick={() => subcategoria.id && setCategoriaAtiva(subcategoria.id)}
+                        className={`block w-full text-left px-4 py-2 text-sm ${
+                          categoriaAtiva === subcategoria.id
+                            ? 'bg-amber-500/10 text-amber-400 font-medium'
+                            : 'text-slate-300 hover:bg-slate-800'
+                        }`}
+                      >
+                        {subcategoria.nome}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
               </div>
             </div>
-          ))}
-        </div>
-        
-        {getProdutosPorCategoria(categoriaAtiva).length === 0 && (
-          <div className="mt-10 text-center">
-            <p className="text-slate-400">Nenhum produto disponível nesta categoria</p>
           </div>
         )}
+        
+        {/* Conteúdo com produtos da categoria selecionada */}
+        <div className="flex-1">
+          {/* Título da categoria selecionada */}
+          {categoriaAtiva && (
+            <div className="bg-slate-900 border border-slate-800 rounded-lg p-3 mb-4">
+              <h2 className="text-lg font-medium text-white">
+                {subcategorias.find(c => c.id === categoriaAtiva)?.nome || 'Produtos'}
+              </h2>
+            </div>
+          )}
+          
+          {/* Lista de produtos */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 px-4 md:px-0">
+            {getProdutosPorCategoria(categoriaAtiva).map(produto => (
+              <div 
+                key={produto.id} 
+                onClick={() => {
+                  setProdutoModal(produto);
+                  setQuantidadeModal(1);
+                  setObservacoesModal('');
+                }}
+                className="cursor-pointer rounded-lg border border-slate-800 bg-slate-900 p-4 shadow-md transition-transform hover:scale-[1.02]"
+              >
+                <div className="flex flex-row items-center gap-3">
+                  <div className="flex-1">
+                    <h3 className="text-lg font-medium text-white">{produto.nome}</h3>
+                    
+                    {produto && 'descricao' in produto && produto['descricao'] && (
+                      <p className="mt-1 text-sm text-slate-400 line-clamp-2">
+                        {produto['descricao']}
+                      </p>
+                    )}
+                    
+                    <div className="mt-3">
+                      <p className="text-lg font-bold text-amber-500">{formatarPreco(produto.preco)}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    {produto.imagem_url && (
+                      <div className="w-24 h-24 flex-shrink-0">
+                        <div className="h-full w-full overflow-hidden rounded-md bg-slate-800 flex items-center justify-center relative">
+                          {(() => {
+                            try {
+                              return (
+                                <Image 
+                                  src={produto.imagem_url}
+                                  alt={produto.nome} 
+                                  fill
+                                  sizes="96px"
+                                  className="object-cover"
+                                  quality={80}
+                                  priority={false}
+                                  onError={(e) => {
+                                    console.error(`Erro ao carregar imagem para o produto ${produto.id}:`, produto.imagem_url);
+                                    const target = e.target as HTMLImageElement;
+                                    target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' className='h-12 w-12 text-slate-500' fill='none' viewBox='0 0 24 24' stroke='%236B7280'%3E%3Cpath strokeLinecap='round' strokeLinejoin='round' strokeWidth='2' d='M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z' /%3E%3C/svg%3E";
+                                  }}
+                                  unoptimized={produto.imagem_url.startsWith('http://') || !produto.imagem_url.includes('meizizi.com.br')}
+                                />
+                              );
+                            } catch (error) {
+                              console.error(`Erro ao renderizar imagem para o produto ${produto.id}:`, error);
+                              return (
+                                <div className="h-full w-full flex items-center justify-center bg-slate-800">
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                  </svg>
+                                </div>
+                              );
+                            }
+                          })()}
+                        </div>
+                      </div>
+                    )}
+                    
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const item = carrinho.find(item => item.produto_id === produto.id);
+                        if (item) {
+                          atualizarQuantidade(produto.id!, item.quantidade + 1);
+                        } else {
+                          setCarrinho([...carrinho, {
+                            produto_id: produto.id!,
+                            quantidade: 1,
+                            produto
+                          }]);
+                        }
+                      }}
+                      className="rounded-full bg-amber-500 p-2 text-white hover:bg-amber-600 flex-shrink-0"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          
+          {getProdutosPorCategoria(categoriaAtiva).length === 0 && (
+            <div className="mt-10 text-center">
+              <p className="text-slate-400">Nenhum produto disponível nesta categoria</p>
+            </div>
+          )}
+        </div>
       </main>
       
       {/* Modal de produto */}

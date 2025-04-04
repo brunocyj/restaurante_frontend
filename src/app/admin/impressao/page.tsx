@@ -184,17 +184,19 @@ export default function ImpressaoPage() {
       } 
     } = {};
 
-    // Definir grupos mais específicos
+    // Definir grupos mais específicos baseados nas abas principais do cardápio
     const GRUPO_HOTPOT = 'hotpot';
     const GRUPO_ESPETOS = 'espetos';
     const GRUPO_PRATOS = 'pratos';
     const GRUPO_BEBIDAS = 'bebidas';
+    const GRUPO_SOBREMESAS = 'sobremesas';
 
     // Inicializar grupos
     grupos[GRUPO_HOTPOT] = { nome: '---------HOTPOT---------', ordem: 10, itens: [] };
     grupos[GRUPO_ESPETOS] = { nome: '---------ESPETOS---------', ordem: 20, itens: [] };
     grupos[GRUPO_PRATOS] = { nome: '---------PRATOS---------', ordem: 30, itens: [] };
     grupos[GRUPO_BEBIDAS] = { nome: '---------BEBIDAS---------', ordem: 40, itens: [] };
+    grupos[GRUPO_SOBREMESAS] = { nome: '---------SOBREMESAS---------', ordem: 50, itens: [] };
 
     // Para cada item do pedido
     itens.forEach(item => {
@@ -218,20 +220,20 @@ export default function ImpressaoPage() {
       const categoriaNome = categoria.nome.toLowerCase();
 
       // Determinar o grupo baseado no tipo e categoria
-      if (tipoNome === 'bebidas' || 
-          categoriaNome.includes('bebida') || 
-          categoriaNome.includes('drink')) {
+      if (tipoNome === 'bebidas' || categoriaNome.includes('bebida') || categoriaNome.includes('drink')) {
         grupos[GRUPO_BEBIDAS].itens.push(item);
       } 
+      else if (tipoNome === 'sobremesas' || categoriaNome.includes('sobremesa') || categoriaNome.includes('doce')) {
+        grupos[GRUPO_SOBREMESAS].itens.push(item);
+      }
       else if (tipoNome === 'hotpot' || categoriaNome.includes('hotpot')) {
         grupos[GRUPO_HOTPOT].itens.push(item);
       }
-      else if (tipoNome === 'espetos' || 
-               categoriaNome.includes('espeto') || 
-               categoriaNome.includes('espetos')) {
+      else if (categoriaNome.includes('espeto') || categoriaNome.includes('espetos')) {
         grupos[GRUPO_ESPETOS].itens.push(item);
       }
       else {
+        // Todos os outros itens (incluindo pratos especiais e normais) vão para PRATOS
         grupos[GRUPO_PRATOS].itens.push(item);
       }
     });
