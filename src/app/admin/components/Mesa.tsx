@@ -512,13 +512,17 @@ export default function Mesa() {
                                             Excluir
                                         </button>
                                         {mesa.qr_code && (
-                    <button
-                        onClick={() => window.open(mesa.qr_code, '_blank')}
-                        className="rounded-md bg-blue-500/20 px-3 py-1 text-xs text-blue-500 hover:bg-blue-500/30"
-                    >
-                        Abrir QR
-                    </button>
-                )}
+    <button
+        onClick={() => {
+            // Adiciona "https://" se o qr_code não começar com "http"
+            const url = mesa.qr_code.startsWith('http') ? mesa.qr_code : `https://${mesa.qr_code}`;
+            window.open(url, '_blank');
+        }}
+        className="rounded-md bg-blue-500/20 px-3 py-1 text-xs text-blue-500 hover:bg-blue-500/30"
+    >
+        Abrir QR
+    </button>
+)}
                                     </div>
                                 </div>
                             ))}
