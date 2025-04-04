@@ -352,7 +352,7 @@ export default function QRCodePage() {
   // Obter nome amigável para exibição da aba
   const getNomeAba = (aba: AbaPrincipal) => {
     switch (aba) {
-      case AbaPrincipal.HOTPOT: return '火锅-Hotpot';
+      case AbaPrincipal.HOTPOT: return '美滋滋火锅-Hotpot';
       case AbaPrincipal.PRATOS_ESPECIAIS: return '特色菜品-Pratos Especiais';
       case AbaPrincipal.ESPETOS: return '烤串-Espetos';
       case AbaPrincipal.PRATOS_NORMAIS: return '其他菜品-Pratos Normais';
