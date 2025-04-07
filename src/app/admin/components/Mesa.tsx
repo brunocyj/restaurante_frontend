@@ -511,6 +511,14 @@ export default function Mesa() {
                                         >
                                             Excluir
                                         </button>
+                                        {mesa.qr_code && (
+                    <button
+                        onClick={() => window.open(mesa.qr_code, '_blank')}
+                        className="rounded-md bg-blue-500/20 px-3 py-1 text-xs text-blue-500 hover:bg-blue-500/30"
+                    >
+                        Abrir QR
+                    </button>
+                )}
                                     </div>
                                 </div>
                             ))}
