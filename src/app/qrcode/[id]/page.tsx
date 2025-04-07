@@ -100,7 +100,7 @@ export default function QRCodePage() {
     if (Object.keys(categoriasAgrupadas).length > 0 && tipoCardapio) {
       // Definir aba principal padrão com base no tipo de cardápio
       if (!abaPrincipalAtiva) {
-        const abaInicial = tipoCardapio.nome.toLowerCase() === 'hotpot' 
+        const abaInicial = tipoCardapio.nome.toLowerCase().includes('hotpot') 
           ? AbaPrincipal.HOTPOT 
           : AbaPrincipal.PRATOS_NORMAIS;
         setAbaPrincipalAtiva(abaInicial);
@@ -328,7 +328,7 @@ export default function QRCodePage() {
     const tipoCardapioNome = tipoCardapio.nome.toLowerCase();
     
     // Abas para cardápio hotpot
-    if (tipoCardapioNome === 'hotpot') {
+    if (tipoCardapioNome.includes('hotpot')) {
       return [
         AbaPrincipal.HOTPOT,
         AbaPrincipal.PRATOS_ESPECIAIS, 
@@ -417,14 +417,14 @@ export default function QRCodePage() {
       case AbaPrincipal.HOTPOT:
         // Todas as categorias do tipo hotpot
         return Object.entries(categoriasAgrupadas)
-          .filter(([tipoId, _]) => tiposCardapio[tipoId]?.toLowerCase() === 'hotpot')
+          .filter(([tipoId, _]) => tiposCardapio[tipoId]?.toLowerCase().includes('hotpot'))
           .flatMap(([_, cats]) => cats)
           .sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
           
       case AbaPrincipal.PRATOS_ESPECIAIS:
         // Categorias específicas do tipo normal que são consideradas "especiais"
         return Object.entries(categoriasAgrupadas)
-          .filter(([tipoId, _]) => tiposCardapio[tipoId]?.toLowerCase() === 'normal')
+          .filter(([tipoId, _]) => tiposCardapio[tipoId]?.toLowerCase().includes('normal'))
           .flatMap(([_, cats]) => cats.filter(cat => 
             CATEGORIAS_PRATOS_ESPECIAIS.some(nome => 
               cat.nome.toLowerCase().includes(nome.toLowerCase())
@@ -444,7 +444,7 @@ export default function QRCodePage() {
       case AbaPrincipal.PRATOS_NORMAIS:
         // Categorias do tipo normal, exceto as categorias especiais e espetos
         return Object.entries(categoriasAgrupadas)
-          .filter(([tipoId, _]) => tiposCardapio[tipoId]?.toLowerCase() === 'normal')
+          .filter(([tipoId, _]) => tiposCardapio[tipoId]?.toLowerCase() === '普通菜normal')
           .flatMap(([_, cats]) => cats.filter(cat => 
             // Excluir categorias especiais
             !CATEGORIAS_PRATOS_ESPECIAIS.some(nome => 
@@ -459,14 +459,14 @@ export default function QRCodePage() {
       case AbaPrincipal.BEBIDAS:
         // Todas as categorias do tipo bebidas
         return Object.entries(categoriasAgrupadas)
-          .filter(([tipoId, _]) => tiposCardapio[tipoId]?.toLowerCase() === 'bebidas')
+          .filter(([tipoId, _]) => tiposCardapio[tipoId]?.toLowerCase() === '饮品bebidas')
           .flatMap(([_, cats]) => cats)
           .sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
           
       case AbaPrincipal.SOBREMESAS:
         // Todas as categorias do tipo sobremesas
         return Object.entries(categoriasAgrupadas)
-          .filter(([tipoId, _]) => tiposCardapio[tipoId]?.toLowerCase() === 'sobremesas')
+          .filter(([tipoId, _]) => tiposCardapio[tipoId]?.toLowerCase() === '甜点sobremesas')
           .flatMap(([_, cats]) => cats)
           .sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
           
@@ -480,15 +480,15 @@ export default function QRCodePage() {
     if (!tipoCardapio) return [];
     
     // Determinar quais tipos de cardápio devem ser excluídos
-    const tipoExcluido = tipoCardapio.nome.toLowerCase() === 'normal' ? 'hotpot' : 'normal';
+    const tipoExcluido = tipoCardapio.nome.toLowerCase().includes('normal') ? 'hotpot' : 'normal';
     
     // Filtrar categorias
     return Object.entries(categoriasAgrupadas)
     .flatMap(([tipoId, cats]) => {
-      const nomeTipo = tiposCardapio[tipoId]?.toLowerCase();
+      const nomeTipo = tiposCardapio[tipoId]?.toLowerCase() || '';
 
       // Se o tipo for o excluído, só mantém categorias que começam com "Espeto" ou "Espetos"
-      if (nomeTipo === tipoExcluido) {
+      if (nomeTipo.includes(tipoExcluido)) {
         return cats.filter(categoria =>
           categoria.nome.toLowerCase().startsWith('espeto') ||
           categoria.nome.toLowerCase().startsWith('espetos')

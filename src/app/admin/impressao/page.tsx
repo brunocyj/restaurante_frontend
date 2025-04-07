@@ -220,13 +220,13 @@ export default function ImpressaoPage() {
       const categoriaNome = categoria.nome.toLowerCase();
 
       // Determinar o grupo baseado no tipo e categoria
-      if (tipoNome === 'bebidas' || categoriaNome.includes('bebida') || categoriaNome.includes('drink')) {
+      if (tipoNome.includes('bebida') || categoriaNome.includes('bebida') || categoriaNome.includes('drink')) {
         grupos[GRUPO_BEBIDAS].itens.push(item);
       } 
-      else if (tipoNome === 'sobremesas' || categoriaNome.includes('sobremesa') || categoriaNome.includes('doce')) {
+      else if (tipoNome.includes('sobremesa') || categoriaNome.includes('sobremesa') || categoriaNome.includes('doce')) {
         grupos[GRUPO_SOBREMESAS].itens.push(item);
       }
-      else if (tipoNome === 'hotpot' || categoriaNome.includes('hotpot')) {
+      else if (tipoNome.includes('hotpot') || categoriaNome.includes('hotpot')) {
         grupos[GRUPO_HOTPOT].itens.push(item);
       }
       else if (categoriaNome.includes('炸串') || categoriaNome.includes('烤串肉类')) {

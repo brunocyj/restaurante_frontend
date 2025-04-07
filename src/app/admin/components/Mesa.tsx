@@ -25,6 +25,7 @@ export default function Mesa() {
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
     const [filtroStatus, setFiltroStatus] = useState<MesaStatus | 'TODOS'>('TODOS');
+    const [filtroSecao, setFiltroSecao] = useState<string>('TODAS');
 
     const [showModal, setShowModal] = useState(false);
     const [modalMode, setModalMode] = useState<'criar' | 'editar'>('criar');
@@ -115,14 +116,39 @@ export default function Mesa() {
         fetchData();
     }, []);
 
-    // Efeito para filtrar as mesas quando o filtro de status muda
+    // Efeito para filtrar as mesas quando o filtro de status ou seção muda
     useEffect(() => {
-        if (filtroStatus === 'TODOS') {
-            setMesasFiltradas(mesas);
-        } else {
-            setMesasFiltradas(mesas.filter(mesa => mesa.status === filtroStatus));
+        let mesasFiltradas = [...mesas];
+        
+        // Primeiro ordenar todas as mesas pelo ID
+        mesasFiltradas.sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true, sensitivity: 'base' }));
+        
+        // Aplicar filtro de status
+        if (filtroStatus !== 'TODOS') {
+            mesasFiltradas = mesasFiltradas.filter(mesa => mesa.status === filtroStatus);
         }
-    }, [filtroStatus, mesas]);
+        
+        // Aplicar filtro de seção (baseado na primeira letra do ID)
+        if (filtroSecao !== 'TODAS') {
+            mesasFiltradas = mesasFiltradas.filter(mesa => {
+                const primeiraLetra = mesa.id.charAt(0).toUpperCase();
+                return primeiraLetra === filtroSecao;
+            });
+        }
+        
+        setMesasFiltradas(mesasFiltradas);
+    }, [filtroStatus, filtroSecao, mesas]);
+
+    // Função para obter seções únicas a partir dos IDs das mesas
+    const getSecoesUnicas = () => {
+        const secoes = new Set<string>();
+        mesas.forEach(mesa => {
+            if (mesa.id.length > 0) {
+                secoes.add(mesa.id.charAt(0).toUpperCase());
+            }
+        });
+        return Array.from(secoes).sort();
+    };
 
     const handleOpenCreateModal = () => {
         setCurrentMesa({ 
@@ -356,6 +382,36 @@ export default function Mesa() {
                 </div>
             </div>
 
+            {/* Filtro de seções/áreas (A, B, C, etc.) */}
+            <div className="mb-6">
+                <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-sm font-medium text-slate-400">Filtrar por seção:</span>
+                    <button
+                        onClick={() => setFiltroSecao('TODAS')}
+                        className={`rounded-full px-3 py-1 text-xs font-medium ${
+                            filtroSecao === 'TODAS'
+                                ? 'bg-slate-700 text-white'
+                                : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white'
+                        }`}
+                    >
+                        Todas
+                    </button>
+                    {getSecoesUnicas().map(secao => (
+                        <button
+                            key={secao}
+                            onClick={() => setFiltroSecao(secao)}
+                            className={`rounded-full px-3 py-1 text-xs font-medium ${
+                                filtroSecao === secao
+                                    ? 'bg-blue-600 text-white'
+                                    : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white'
+                            }`}
+                        >
+                            Seção {secao}
+                        </button>
+                    ))}
+                </div>
+            </div>
+
             {/* Estatísticas rápidas */}
             <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
                 <div className="rounded-lg border border-slate-800 bg-slate-800/50 p-4">
@@ -513,7 +569,17 @@ export default function Mesa() {
                                         </button>
                                         {mesa.qr_code && (
                     <button
-                        onClick={() => window.open(mesa.qr_code, '_blank')}
+                        onClick={() => {
+                            // Verificar se o QR code já tem protocolo http(s)
+                            let url = mesa.qr_code;
+                            
+                            // Se não começar com http:// ou https://, adicionar https://
+                            if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                                url = 'https://' + url;
+                            }
+                            
+                            window.open(url, '_blank');
+                        }}
                         className="rounded-md bg-blue-500/20 px-3 py-1 text-xs text-blue-500 hover:bg-blue-500/30"
                     >
                         Abrir QR
