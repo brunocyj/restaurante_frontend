@@ -1,11 +1,10 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { getPedidos, getPedidoById, Pedido, StatusPedido } from '@/lib/pedido';
+import { getPedidos, Pedido, StatusPedido } from '@/lib/pedido';
 import { getMesas, Mesa } from '@/lib/mesa';
 import { getProdutos, Produto, getCategorias, Categoria, getTiposCardapio, TipoCardapio } from '@/lib/cardapio';
 import Link from 'next/link';
-import { format } from 'date-fns';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 export default function ImpressaoPage() {
@@ -23,7 +22,6 @@ export default function ImpressaoPage() {
   const [filtroRecentes, setFiltroRecentes] = useState<boolean>(false);
   const [pedidosVistos, setPedidosVistos] = useState<Set<string>>(new Set());
   const [atualizacaoAutomatica, setAtualizacaoAutomatica] = useState<boolean>(false);
-  const [itensNovos, setItensNovos] = useState<any[]>([]);
   const [margemLateral, setMargemLateral] = useState<number>(3);
   const [imprimirCategoriasSeparadas, setImprimirCategoriasSeparadas] = useState<boolean>(false);
   

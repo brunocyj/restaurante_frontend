@@ -403,8 +403,8 @@ export default function NotificacaoPanel() {
           <div className="flex flex-col">
             <div className="flex items-center justify-between">
               <div className="flex items-center">
-                <div className="h-3 w-3 rounded-full bg-blue-500 mr-2"></div>
-                <p className="text-blue-500 font-semibold">Itens Adicionados ao Pedido</p>
+                <div className="h-3 w-3 rounded-full bg-blue-600 mr-2"></div>
+                <p className="text-blue-500 font-bold">Itens Adicionados ao Pedido</p>
               </div>
               
               {notificacao.content.pedido_id && (
@@ -425,7 +425,7 @@ export default function NotificacaoPanel() {
               )}
             </div>
             
-            <p className="mt-1">
+            <p className="mt-1 text-white">
               {mesa 
                 ? `${notificacao.count || todosProdutos.length || 'Novos'} itens adicionados ao pedido da Mesa ${mesa.id}` 
                 : notificacao.content.message
@@ -451,7 +451,7 @@ export default function NotificacaoPanel() {
               </button>
             )}
             
-            <p className="text-sm text-slate-400 mt-1">
+            <p className="text-sm text-white mt-1">
               {formatarDataNotificacao(notificacao.created_at)}
             </p>
           </div>
@@ -461,16 +461,16 @@ export default function NotificacaoPanel() {
         return (
           <div className="flex flex-col">
             <div className="flex items-center">
-              <div className="h-3 w-3 rounded-full bg-green-500 mr-2"></div>
-              <p className="text-green-500 font-semibold">Pedido Finalizado</p>
+              <div className="h-3 w-3 rounded-full bg-green-600 mr-2"></div>
+              <p className="text-green-500 font-bold">Pedido Finalizado</p>
             </div>
-            <p className="mt-1">
+            <p className="mt-1 text-white">
               {mesa 
                 ? `Mesa ${mesa.id} finalizou o pedido e pediu a conta` 
                 : notificacao.content.message + ` - metodo de pagamento: ${notificacao.content.metodo_pagamento}`
               }
             </p>
-            <p className="text-sm text-slate-400 mt-1">
+            <p className="text-sm text-white mt-1">
               {formatarDataNotificacao(notificacao.created_at)}
             </p>
           </div>
@@ -551,7 +551,7 @@ export default function NotificacaoPanel() {
         return (
           <div className="flex flex-col">
             <p>{notificacao.content.message}</p>
-            <p className="text-sm text-slate-400 mt-1">
+            <p className="text-sm text-white mt-1">
               {formatarDataNotificacao(notificacao.created_at)}
             </p>
           </div>
@@ -601,7 +601,7 @@ export default function NotificacaoPanel() {
       <h2 className="text-lg font-medium text-white mb-4 flex items-center justify-between">
         <span>Notificações</span>
         {notificacoesOrdenadas.filter(n => !n.read).length > 0 && (
-          <span className="bg-amber-500 text-white text-xs px-2 py-1 rounded-full">
+          <span className="bg-red-600 text-white text-xs font-bold px-2 py-1 rounded-full">
             {notificacoesOrdenadas.filter(n => !n.read).length} não lida(s)
           </span>
         )}
@@ -613,8 +613,8 @@ export default function NotificacaoPanel() {
             key={notificacao.id} 
             className={`rounded-lg border p-3 ${
               notificacao.read 
-                ? 'border-slate-800 bg-slate-800/30' 
-                : 'border-amber-800/50 bg-amber-900/20'
+                ? 'border-slate-700 bg-slate-800 text-white' 
+                : 'border-amber-500 bg-amber-700 text-white'
             }`}
           >
             {renderNotificacaoContent(notificacao)}
@@ -623,7 +623,7 @@ export default function NotificacaoPanel() {
               {!notificacao.read && (
                 <button
                   onClick={() => handleMarkAsRead(notificacao.id)}
-                  className="text-sm px-3 py-1 rounded bg-slate-800 text-slate-300 hover:bg-slate-700"
+                  className="text-sm px-3 py-1 rounded bg-slate-600 text-white font-medium hover:bg-slate-500"
                 >
                   Marcar como lida
                 </button>
@@ -632,7 +632,7 @@ export default function NotificacaoPanel() {
               {expandedNotifications.includes(notificacao.id) && (
                 <button
                   onClick={() => handleExpandNotification(notificacao.id)}
-                  className="text-sm px-3 py-1 rounded bg-slate-800 text-slate-300 hover:bg-slate-700"
+                  className="text-sm px-3 py-1 rounded bg-slate-600 text-white font-medium hover:bg-slate-500"
                 >
                   Recolher
                 </button>
@@ -640,7 +640,7 @@ export default function NotificacaoPanel() {
               
               <button
                 onClick={() => handleRemoveNotification(notificacao.id)}
-                className="text-sm px-3 py-1 rounded bg-red-900/30 text-red-400 hover:bg-red-900/50"
+                className="text-sm px-3 py-1 rounded bg-red-700 text-white font-medium hover:bg-red-600"
               >
                 Remover
               </button>
