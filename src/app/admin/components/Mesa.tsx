@@ -116,6 +116,63 @@ export default function Mesa() {
         fetchData();
     }, []);
 
+    // Função para obter seções únicas a partir dos IDs das mesas
+    const getSecoesUnicas = () => {
+        const secoes = new Set<string>();
+        mesas.forEach(mesa => {
+            if (mesa.id.length > 0) {
+                secoes.add(mesa.id.charAt(0).toUpperCase());
+            }
+        });
+        return Array.from(secoes).sort();
+    };
+
+    // Função para converter o ID da seção para o nome de exibição
+    const getNomeSecao = (secao: string) => {
+        switch (secao) {
+            case 'A':
+                return '烧烤区A';
+            case 'B':
+                return '烧烤区B';
+            case 'C':
+                return '火锅区C';
+            case 'F':
+                return '烧烤区B'; // F é parte de 烧烤区B
+            default:
+                return `Seção ${secao}`;
+        }
+    };
+
+    // Função para determinar se uma seção deve ser exibida no filtro
+    const deveExibirSecao = (secao: string) => {
+        return secao !== 'E' && secao !== 'F'; // Não exibir seções E e F (F está incluído em B)
+    };
+
+    // Função personalizada para ordenar as seções conforme requisitos
+    const ordenarSecoes = (secoes: string[]) => {
+        const ordemPreferida = ['A', 'B', 'C'];
+        
+        // Filtrar apenas as seções desejadas e remover F (já incluído em B)
+        const secoesFiltradas = secoes
+            .filter(secao => deveExibirSecao(secao) && secao !== 'F');
+        
+        // Ordenar baseado na ordem preferida
+        return secoesFiltradas.sort((a, b) => {
+            const indexA = ordemPreferida.indexOf(a);
+            const indexB = ordemPreferida.indexOf(b);
+            
+            // Se ambos estão na lista de preferência, usar essa ordem
+            if (indexA >= 0 && indexB >= 0) return indexA - indexB;
+            
+            // Se apenas um está na lista, priorizar ele
+            if (indexA >= 0) return -1;
+            if (indexB >= 0) return 1;
+            
+            // Caso contrário, ordenar alfabeticamente
+            return a.localeCompare(b);
+        });
+    };
+
     // Efeito para filtrar as mesas quando o filtro de status ou seção muda
     useEffect(() => {
         let mesasFiltradas = [...mesas];
@@ -130,25 +187,22 @@ export default function Mesa() {
         
         // Aplicar filtro de seção (baseado na primeira letra do ID)
         if (filtroSecao !== 'TODAS') {
-            mesasFiltradas = mesasFiltradas.filter(mesa => {
-                const primeiraLetra = mesa.id.charAt(0).toUpperCase();
-                return primeiraLetra === filtroSecao;
-            });
+            // Caso especial para seção F que deve aparecer com B
+            if (filtroSecao === 'B') {
+                mesasFiltradas = mesasFiltradas.filter(mesa => {
+                    const primeiraLetra = mesa.id.charAt(0).toUpperCase();
+                    return primeiraLetra === 'B' || primeiraLetra === 'F';
+                });
+            } else {
+                mesasFiltradas = mesasFiltradas.filter(mesa => {
+                    const primeiraLetra = mesa.id.charAt(0).toUpperCase();
+                    return primeiraLetra === filtroSecao;
+                });
+            }
         }
         
         setMesasFiltradas(mesasFiltradas);
     }, [filtroStatus, filtroSecao, mesas]);
-
-    // Função para obter seções únicas a partir dos IDs das mesas
-    const getSecoesUnicas = () => {
-        const secoes = new Set<string>();
-        mesas.forEach(mesa => {
-            if (mesa.id.length > 0) {
-                secoes.add(mesa.id.charAt(0).toUpperCase());
-            }
-        });
-        return Array.from(secoes).sort();
-    };
 
     const handleOpenCreateModal = () => {
         setCurrentMesa({ 
@@ -383,32 +437,34 @@ export default function Mesa() {
             </div>
 
             {/* Filtro de seções/áreas (A, B, C, etc.) */}
-            <div className="mb-6">
-                <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-sm font-medium text-slate-400">Filtrar por seção:</span>
-                    <button
-                        onClick={() => setFiltroSecao('TODAS')}
-                        className={`rounded-full px-3 py-1 text-xs font-medium ${
-                            filtroSecao === 'TODAS'
-                                ? 'bg-slate-700 text-white'
-                                : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white'
-                        }`}
-                    >
-                        Todas
-                    </button>
-                    {getSecoesUnicas().map(secao => (
+            <div className="mb-8">
+                <div className="flex flex-col space-y-3">
+                    <span className="text-base font-medium text-white">Filtrar por seção:</span>
+                    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:flex lg:flex-wrap">
                         <button
-                            key={secao}
-                            onClick={() => setFiltroSecao(secao)}
-                            className={`rounded-full px-3 py-1 text-xs font-medium ${
-                                filtroSecao === secao
-                                    ? 'bg-blue-600 text-white'
-                                    : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white'
+                            onClick={() => setFiltroSecao('TODAS')}
+                            className={`rounded-lg border px-6 py-3 text-base font-medium transition-all duration-200 ${
+                                filtroSecao === 'TODAS'
+                                    ? 'border-amber-500 bg-amber-600 text-white shadow-lg shadow-amber-900/30'
+                                    : 'border-slate-700 bg-slate-800 text-slate-300 hover:border-amber-500 hover:bg-slate-700 hover:text-white'
                             }`}
                         >
-                            Seção {secao}
+                            Todas as seções
                         </button>
-                    ))}
+                        {ordenarSecoes(getSecoesUnicas()).map(secao => (
+                            <button
+                                key={secao}
+                                onClick={() => setFiltroSecao(secao)}
+                                className={`rounded-lg border px-6 py-3 text-base font-medium transition-all duration-200 ${
+                                    filtroSecao === secao
+                                        ? 'border-blue-500 bg-blue-600 text-white shadow-lg shadow-blue-900/30'
+                                        : 'border-slate-700 bg-slate-800 text-slate-300 hover:border-blue-500 hover:bg-slate-700 hover:text-white'
+                                }`}
+                            >
+                                {getNomeSecao(secao)}
+                            </button>
+                        ))}
+                    </div>
                 </div>
             </div>
 
