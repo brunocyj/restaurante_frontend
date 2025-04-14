@@ -265,7 +265,7 @@ export default function ImpressaoPage() {
     // Criar conteúdo para impressora térmica
     // Formatando para impressora térmica que recebe texto puro
     const criarConteudoTermico = (categoriaSelecionada?: string) => {
-      const linhas = [];
+      const linhas: Array<{text: string, className?: string}> = [];
       // Largura padrão para impressoras térmicas de 80mm (reduzida para centralizar mais)
       const larguraMaxima = 42; 
       
@@ -275,27 +275,28 @@ export default function ImpressaoPage() {
       };
       
       // Título
-      linhas.push(centralizar(nomeRestaurante));
-      linhas.push(centralizar(endereco));
-      linhas.push(centralizar('-'.repeat(larguraMaxima - (margemLateral * 2))));
+      linhas.push({text: centralizar(nomeRestaurante)});
+      linhas.push({text: centralizar(endereco)});
+      linhas.push({text: centralizar('-'.repeat(larguraMaxima - (margemLateral * 2)))});
       
       // Informações do pedido
-      const infoMesa = `Mesa: ${getMesaNome(pedidoSelecionado.mesa_id)}`;
+      const mesaNome = getMesaNome(pedidoSelecionado.mesa_id);
       const infoPedido = `Pedido: #${pedidoSelecionado.id.substring(0, 8)}`;
       const infoData = `Data: ${formatarData(pedidoSelecionado.criado_em).split(' ')[0]}`;
       const infoHora = `Hora: ${formatarData(pedidoSelecionado.criado_em).split(' ')[1]}`;
       
-      linhas.push(' '.repeat(margemLateral) + infoMesa);
-      linhas.push(' '.repeat(margemLateral) + infoPedido);
-      linhas.push(' '.repeat(margemLateral) + infoData);
-      linhas.push(' '.repeat(margemLateral) + infoHora);
-      linhas.push(centralizar('-'.repeat(larguraMaxima - (margemLateral * 2))));
+      // A linha da mesa tem classe especial para destacar
+      linhas.push({text: ' '.repeat(margemLateral) + `MESA: ${mesaNome}`, className: 'mesa-destaque'});
+      linhas.push({text: ' '.repeat(margemLateral) + infoPedido});
+      linhas.push({text: ' '.repeat(margemLateral) + infoData});
+      linhas.push({text: ' '.repeat(margemLateral) + infoHora});
+      linhas.push({text: centralizar('-'.repeat(larguraMaxima - (margemLateral * 2)))});
       
       // Cabeçalho de itens - ajustar com base no modo de impressão
       if (modoImpressao === 'completo') {
-        linhas.push(' '.repeat(margemLateral) + 'QTD NOME                           VALOR');
+        linhas.push({text: ' '.repeat(margemLateral) + 'QTD NOME                           VALOR'});
       } else {
-        linhas.push(' '.repeat(margemLateral) + 'QTD NOME');
+        linhas.push({text: ' '.repeat(margemLateral) + 'QTD NOME'});
       }
       
       // Definição explícita da largura de cada coluna em caracteres (ajustadas para considerar a margem)
@@ -318,9 +319,9 @@ export default function ImpressaoPage() {
       // Iterar sobre cada grupo
       gruposParaImprimir.forEach((grupo: { nome: string; itens: any[] }, grupoIndex: number) => {
         // Título do grupo
-        linhas.push(centralizar('-'.repeat(larguraMaxima - (margemLateral * 2))));
-        linhas.push(centralizar(grupo.nome));
-        linhas.push(centralizar('-'.repeat(larguraMaxima - (margemLateral * 2))));
+        linhas.push({text: centralizar('-'.repeat(larguraMaxima - (margemLateral * 2)))});
+        linhas.push({text: centralizar(grupo.nome)});
+        linhas.push({text: centralizar('-'.repeat(larguraMaxima - (margemLateral * 2)))});
         
         // Itens deste grupo
         grupo.itens.forEach((item: any) => {
@@ -339,10 +340,10 @@ export default function ImpressaoPage() {
           if (modoImpressao === 'completo') {
             // Versão com preço
             const valorStr = alinharDireita(valorFormatado, LARGURA_VALOR);
-            linhas.push(' '.repeat(margemLateral) + qtdStr + nomesTruncado.padEnd(larguraEfetivaNome) + '  ' + valorStr);
+            linhas.push({text: ' '.repeat(margemLateral) + qtdStr + nomesTruncado.padEnd(larguraEfetivaNome) + '  ' + valorStr});
           } else {
             // Versão sem preço (para cozinha)
-            linhas.push(' '.repeat(margemLateral) + qtdStr + " " + nomesTruncado);
+            linhas.push({text: ' '.repeat(margemLateral) + qtdStr + " " + nomesTruncado});
           }
           
           // Descrição e observações em linhas separadas com recuo
@@ -356,7 +357,7 @@ export default function ImpressaoPage() {
               : descricao;
             
             // Usar a função de centralizar para posicionar o texto
-            linhas.push(centralizar(descAjustada));
+            linhas.push({text: centralizar(descAjustada)});
           }
           
           if (item.observacoes) {
@@ -371,18 +372,18 @@ export default function ImpressaoPage() {
               : obsTexto;
             
             // Usar a função de centralizar para posicionar o texto
-            linhas.push(centralizar(obsAjustada));
+            linhas.push({text: centralizar(obsAjustada)});
           }
         });
         
         // Se não for o último grupo e não estamos imprimindo uma categoria específica
         // Adicionar comando de corte de papel
         if (!categoriaSelecionada && grupoIndex < gruposParaImprimir.length - 1) {
-          linhas.push('\n\n\n\x1D\x56\x41\x0A'); // GS V A LF - Comando de corte mais compatível
+          linhas.push({text: '\n\n\n\x1D\x56\x41\x0A'});
         }
       });
       
-      linhas.push(centralizar('-'.repeat(larguraMaxima - (margemLateral * 2))));
+      linhas.push({text: centralizar('-'.repeat(larguraMaxima - (margemLateral * 2)))});
       
       // Total (apenas no modo completo)
       if (modoImpressao === 'completo') {
@@ -390,53 +391,49 @@ export default function ImpressaoPage() {
         const valorComDesconto = calcularDescontoDinheiro(valorTotal);
         
         if (pedidoSelecionado.metodo_pagamento === 'DINHEIRO') {
-          linhas.push(' '.repeat(margemLateral) + `Subtotal: R$ ${formatarPreco(valorTotal)}`);
-          linhas.push(' '.repeat(margemLateral) + 'Desconto: 5% (Pagamento em Dinheiro)');
-          linhas.push(' '.repeat(margemLateral) + `TOTAL: R$ ${formatarPreco(valorComDesconto)}`);
+          linhas.push({text: ' '.repeat(margemLateral) + `Subtotal: R$ ${formatarPreco(valorTotal)}`});
+          linhas.push({text: ' '.repeat(margemLateral) + 'Desconto: 5% (Pagamento em Dinheiro)'});
+          linhas.push({text: ' '.repeat(margemLateral) + `TOTAL: R$ ${formatarPreco(valorComDesconto)}`});
         } else {
-          linhas.push(' '.repeat(margemLateral) + `TOTAL: R$ ${formatarPreco(valorTotal)}`);
+          linhas.push({text: ' '.repeat(margemLateral) + `TOTAL: R$ ${formatarPreco(valorTotal)}`});
         }
       } else if (modoImpressao === 'sem-precos') {
-        linhas.push(centralizar("*** COMANDA SEM PREÇOS ***"));
+        linhas.push({text: centralizar("*** COMANDA SEM PREÇOS ***")});
       }
       
       // Método de pagamento
       if (modoImpressao === 'completo' && pedidoSelecionado.metodo_pagamento) {
-        linhas.push('');
-        linhas.push(' '.repeat(margemLateral) + `Forma de Pagamento: ${pedidoSelecionado.metodo_pagamento.replace('_', ' ')}`);
+        linhas.push({text: ''});
+        linhas.push({text: ' '.repeat(margemLateral) + `Forma de Pagamento: ${pedidoSelecionado.metodo_pagamento.replace('_', ' ')}`});
       }
       
       // Observação geral
       if (pedidoSelecionado.observacao_geral) {
-        linhas.push('');
-        linhas.push(centralizar('--- OBSERVAÇÕES ---'));
+        linhas.push({text: ''});
+        linhas.push({text: centralizar('--- OBSERVAÇÕES ---')});
         
         // Dividir as observações gerais em linhas para melhor visualização
         const observacoes = pedidoSelecionado.observacao_geral.split('\n');
-        
         observacoes.forEach(obs => {
-          // Calcular espaço disponível considerando margem de segurança
-          const espacoDisponivel = larguraMaxima - 6;
-          
-          // Se a linha for muito longa, dividir em múltiplas linhas
-          if (obs.length > espacoDisponivel) {
-            // Dividir em pedaços de tamanho apropriado
-            for (let i = 0; i < obs.length; i += espacoDisponivel - 3) {
-              const parte = obs.substring(i, i + espacoDisponivel - 3);
-              linhas.push(centralizar(parte));
+          if (obs.trim()) {
+            let obsRestante = obs.trim();
+            // Quebrar texto longo em várias linhas
+            while (obsRestante.length > 0) {
+              const tamanhoLinha = Math.min(larguraMaxima - (margemLateral * 2), obsRestante.length);
+              const parteObs = obsRestante.substring(0, tamanhoLinha);
+              // Usar a função de centralizar para posicionar o texto
+              linhas.push({text: centralizar(parteObs)});
+              obsRestante = obsRestante.substring(tamanhoLinha);
             }
-          } else {
-            // A linha cabe em uma única linha
-            linhas.push(centralizar(obs));
           }
         });
       }
       
       // Finalização
-      linhas.push('');
-      linhas.push('\n\n\n'); // Espaço para corte do papel
+      linhas.push({text: ''});
+      linhas.push({text: '\n\n\n'}); // Espaço para corte do papel
       
-      return linhas.join('\n');
+      return linhas;
     };
     
     // Imprimir todas as categorias em impressões separadas ou tudo junto
@@ -452,12 +449,22 @@ export default function ImpressaoPage() {
         const categoriaNome = grupo.nome;
         
         // Preparar conteúdo para impressão em HTML
-        const conteudoHTML = document.createElement('pre');
+        const conteudoHTML = document.createElement('div');
         conteudoHTML.style.fontFamily = 'monospace';
         conteudoHTML.style.whiteSpace = 'pre';
         conteudoHTML.style.margin = '0';
         conteudoHTML.style.padding = '0';
-        conteudoHTML.textContent = criarConteudoTermico(categoriaNome);
+        
+        // Criar o HTML com as linhas formatadas
+        const linhasConteudo = criarConteudoTermico(categoriaNome);
+        linhasConteudo.forEach(linha => {
+          const linhaElement = document.createElement('div');
+          linhaElement.textContent = linha.text;
+          if (linha.className) {
+            linhaElement.className = linha.className;
+          }
+          conteudoHTML.appendChild(linhaElement);
+        });
         
         // Criar um iframe para impressão
         const iframeImpressao = document.createElement('iframe');
@@ -486,6 +493,10 @@ export default function ImpressaoPage() {
               white-space: pre;
               margin: 0;
               padding: 1mm;
+            }
+            .mesa-destaque {
+              font-size: 14pt !important;
+              font-weight: bold !important;
             }
           `);
           doc.write('</style></head><body>');
@@ -520,12 +531,22 @@ export default function ImpressaoPage() {
     } else {
       // Impressão normal (todos os itens juntos)
       // Preparar conteúdo para impressão em HTML
-      const conteudoHTML = document.createElement('pre');
+      const conteudoHTML = document.createElement('div');
       conteudoHTML.style.fontFamily = 'monospace';
       conteudoHTML.style.whiteSpace = 'pre';
       conteudoHTML.style.margin = '0';
       conteudoHTML.style.padding = '0';
-      conteudoHTML.textContent = criarConteudoTermico();
+      
+      // Criar o HTML com as linhas formatadas
+      const linhasConteudo = criarConteudoTermico();
+      linhasConteudo.forEach(linha => {
+        const linhaElement = document.createElement('div');
+        linhaElement.textContent = linha.text;
+        if (linha.className) {
+          linhaElement.className = linha.className;
+        }
+        conteudoHTML.appendChild(linhaElement);
+      });
       
       // Criar um iframe para impressão
       const iframeImpressao = document.createElement('iframe');
@@ -549,11 +570,15 @@ export default function ImpressaoPage() {
           }
           pre {
             font-family: monospace;
-            font-size: ${modoImpressao === 'sem-precos' ? '13pt' : '9pt'} !important;
+            font-size: ${modoImpressao === 'sem-precos' ? '9pt' : '9pt'} !important;
             font-weight: ${modoImpressao === 'sem-precos' ? 'bold' : 'normal'};
             white-space: pre;
             margin: 0;
             padding: 1mm;
+          }
+          .mesa-destaque {
+            font-size: 14pt !important;
+            font-weight: bold !important;
           }
         `);
         doc.write('</style></head><body>');

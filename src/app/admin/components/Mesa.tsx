@@ -39,7 +39,7 @@ export default function Mesa() {
 
     // Status das mesas
     const statusOptions = [
-        { value: MesaStatus.LIVRE, label: 'Livre', color: 'bg-green-500' },
+        { value: MesaStatus.LIVRE, label: 'Livre', color: 'bg-green-500' }, 
         { value: MesaStatus.OCUPADA, label: 'Ocupada', color: 'bg-red-500' },
         { value: MesaStatus.RESERVADA, label: 'Reservada', color: 'bg-yellow-500' },
         { value: MesaStatus.MANUTENCAO, label: 'Manutenção', color: 'bg-gray-500' }

@@ -168,7 +168,8 @@ export default function EntregaPage() {
           try {
             const tipoCardapioData = await getTipoCardapioById(primeiroTipoId);
             setTipoCardapio(tipoCardapioData);
-          } catch (_) {
+          } catch (error) {
+            console.error('Erro ao buscar tipo de cardápio:', error);
             toast.error('Não foi possível carregar o cardápio');
           }
         }
@@ -993,8 +994,8 @@ export default function EntregaPage() {
                 </button>
               </div>
             )}
-          </div>
         </div>
+      </div>
       )}
     </div>
   );
