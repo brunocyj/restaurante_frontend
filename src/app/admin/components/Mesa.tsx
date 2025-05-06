@@ -63,25 +63,25 @@ export default function Mesa() {
         switch (status) {
             case MesaStatus.LIVRE:
                 return (
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                 );
             case MesaStatus.OCUPADA:
                 return (
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                     </svg>
                 );
             case MesaStatus.RESERVADA:
                 return (
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                 );
             case MesaStatus.MANUTENCAO:
                 return (
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                     </svg>
@@ -570,7 +570,7 @@ export default function Mesa() {
                             </button>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+                        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8">
                             {mesasFiltradas.map((mesa) => (
                                 <div
                                     key={mesa.id}
@@ -582,65 +582,58 @@ export default function Mesa() {
                                             : mesa.status === MesaStatus.RESERVADA 
                                             ? 'border-yellow-800 bg-yellow-900/10' 
                                             : 'border-gray-800 bg-gray-900/10'
-                                    } p-4 transition-colors hover:bg-slate-800`}
+                                    } p-2 transition-colors hover:bg-slate-800`}
                                 >
-                                    <div className="mb-4 flex items-center justify-between">
-                                        <h3 className="text-lg font-medium text-white">Mesa #{mesa.id}</h3>
-                                        <div className={`h-3 w-3 rounded-full ${getStatusColor(mesa.status)}`}></div>
+                                    <div className="mb-1 flex items-center justify-between">
+                                        <h3 className="text-sm font-medium text-white">#{mesa.id}</h3>
+                                        <div className={`h-2 w-2 rounded-full ${getStatusColor(mesa.status)}`}></div>
                                     </div>
                                     
-                                    <div className="mb-4 flex justify-center">
+                                    <div className="mb-1 flex justify-center">
                                         {renderMesaIcon(mesa.status)}
                                     </div>
                                     
-                                    <p className="mb-2 text-sm text-slate-400">
-                                        Status: <span className="font-medium text-white">{getStatusLabel(mesa.status)}</span>
-                                    </p>
-                                    
-                                    <p className="mb-2 text-sm text-slate-400">
-                                        Cardápio: <span className="font-medium text-white">{getTipoCardapioNome(mesa.tipo_cardapio_id)}</span>
-                                    </p>
-                                    
-                                    {mesa.qr_code && (
-                                        <p className="mb-2 text-sm text-slate-400">
-                                            QR Code: <span className="font-medium text-white">Disponível</span>
+                                    <div className="flex flex-col text-xs">
+                                        <p className="flex items-center justify-between">
+                                            <span className="text-slate-400">Status:</span> 
+                                            <span className="font-medium text-white">{getStatusLabel(mesa.status)}</span>
                                         </p>
-                                    )}
-                                    <p className="mb-2 text-sm text-slate-400">
-                                        Ativa: <span className="font-medium text-white">{mesa.ativa ? 'Sim' : 'Não'}</span>
-                                    </p>
+                                        
+                                        <p className="flex items-center justify-between">
+                                            <span className="text-slate-400">Cardápio:</span>
+                                            <span className="font-medium text-white truncate max-w-[60px]" title={getTipoCardapioNome(mesa.tipo_cardapio_id)}>
+                                                {getTipoCardapioNome(mesa.tipo_cardapio_id)}
+                                            </span>
+                                        </p>
+                                    </div>
                                     
-                                    <div className="mt-4 flex justify-end space-x-2">
+                                    <div className="mt-2 flex justify-end space-x-1">
                                         <button
                                             onClick={() => handleOpenEditModal(mesa)}
-                                            className="rounded-md bg-slate-700 px-3 py-1 text-xs text-white hover:bg-slate-600"
+                                            className="rounded-md bg-slate-700 px-2 py-0.5 text-xs text-white hover:bg-slate-600"
                                         >
                                             Editar
                                         </button>
                                         <button
                                             onClick={() => handleDeleteMesa(mesa.id)}
-                                            className="rounded-md bg-red-500/20 px-3 py-1 text-xs text-red-500 hover:bg-red-500/30"
+                                            className="rounded-md bg-red-500/20 px-2 py-0.5 text-xs text-red-500 hover:bg-red-500/30"
                                         >
                                             Excluir
                                         </button>
                                         {mesa.qr_code && (
-                    <button
-                        onClick={() => {
-                            // Verificar se o QR code já tem protocolo http(s)
-                            let url = mesa.qr_code;
-                            
-                            // Se não começar com http:// ou https://, adicionar https://
-                            if (!url.startsWith('http://') && !url.startsWith('https://')) {
-                                url = 'https://' + url;
-                            }
-                            
-                            window.open(url, '_blank');
-                        }}
-                        className="rounded-md bg-blue-500/20 px-3 py-1 text-xs text-blue-500 hover:bg-blue-500/30"
-                    >
-                        Abrir QR
-                    </button>
-                )}
+                                            <button
+                                                onClick={() => {
+                                                    let url = mesa.qr_code;
+                                                    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                                                        url = 'https://' + url;
+                                                    }
+                                                    window.open(url, '_blank');
+                                                }}
+                                                className="rounded-md bg-blue-500/20 px-2 py-0.5 text-xs text-blue-500 hover:bg-blue-500/30"
+                                            >
+                                                QR
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                             ))}

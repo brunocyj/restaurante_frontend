@@ -1,5 +1,16 @@
 'use client';
 
+/*
+ * Componente de Entrega otimizado para evitar recarregamentos desnecessários
+ * 
+ * Implementações de otimização:
+ * 1. Cache global para armazenar dados entre mudanças de abas
+ * 2. Verificação para carregar dados apenas na primeira montagem do componente
+ * 3. Atualização local e no cache quando o status de pedidos é alterado
+ * 4. Recarregamento manual de dados apenas quando explicitamente solicitado
+ * 5. Atualização automática ao criar novos pedidos
+ */
+
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { 
@@ -18,7 +29,7 @@ import {
   Pedido
 } from '@/lib/pedido';
 import { Toaster, toast } from 'react-hot-toast';
-import { getMesaById, Mesa } from '@/lib/mesa';
+import { getMesaById } from '@/lib/mesa';
 
 // Interface para o carrinho de compras
 interface ItemCarrinho {
@@ -58,15 +69,25 @@ const CATEGORIAS_PRATOS_ESPECIAIS = [
   '海鲜美食'
 ];
 
-export default function EntregaPage() {
+// Cache global para armazenar dados entre mudanças de aba
+const cacheGlobal = {
+  dadosCarregados: false,
+  tipoCardapio: null as TipoCardapio | null,
+  produtos: [] as Produto[],
+  categoriasAgrupadas: {} as {[key: string]: Categoria[]},
+  tiposCardapio: {} as {[key: string]: string},
+  pedidosEntrega: [] as Pedido[]
+};
+
+export default function Entrega() {
   // Estados para armazenar os dados
-  const [tipoCardapio, setTipoCardapio] = useState<TipoCardapio | null>(null);
-  const [produtos, setProdutos] = useState<Produto[]>([]);
-  const [categoriasAgrupadas, setCategoriasAgrupadas] = useState<{[key: string]: Categoria[]}>({});
-  const [tiposCardapio, setTiposCardapio] = useState<{[key: string]: string}>({});
+  const [tipoCardapio, setTipoCardapio] = useState<TipoCardapio | null>(cacheGlobal.tipoCardapio);
+  const [produtos, setProdutos] = useState<Produto[]>(cacheGlobal.produtos);
+  const [categoriasAgrupadas, setCategoriasAgrupadas] = useState<{[key: string]: Categoria[]}>(cacheGlobal.categoriasAgrupadas);
+  const [tiposCardapio, setTiposCardapio] = useState<{[key: string]: string}>(cacheGlobal.tiposCardapio);
   
   // Estados para controle da interface
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(!cacheGlobal.dadosCarregados);
   const [error, setError] = useState<string | null>(null);
   const [categoriaAtiva, setCategoriaAtiva] = useState<string | null>(null);
   const [carrinho, setCarrinho] = useState<ItemCarrinho[]>([]);
@@ -85,87 +106,32 @@ export default function EntregaPage() {
   });
 
   // Estados para exibição de pedidos de entrega
-  const [pedidosEntrega, setPedidosEntrega] = useState<Pedido[]>([]);
+  const [pedidosEntrega, setPedidosEntrega] = useState<Pedido[]>(cacheGlobal.pedidosEntrega);
   const [pedidoSelecionado, setPedidoSelecionado] = useState<Pedido | null>(null);
   const [enviandoPedido, setEnviandoPedido] = useState(false);
   
   // Estados para modos de visualização
   const [modoCriacao, setModoCriacao] = useState(true);
-
+  
   // Estados para controle da nova navegação
   const [abaPrincipalAtiva, setAbaPrincipalAtiva] = useState<AbaPrincipal | null>(null);
   const [subcategorias, setSubcategorias] = useState<Categoria[]>([]);
 
   // Carregar dados iniciais do cardápio e pedidos de entrega
   useEffect(() => {
-    async function carregarDados() {
-      try {
-        setIsLoading(true);
-        
-        // Buscar dados da mesa de entrega
-        const mesaData = await getMesaById(MESA_ENTREGA_ID);
-        
-        if (!mesaData || !mesaData.tipo_cardapio_id) {
-          throw new Error('Mesa de entrega não encontrada ou sem cardápio associado');
-        }
-        
-        // Buscar tipo de cardápio da mesa
-        const tipoCardapioData = await getTipoCardapioById(mesaData.tipo_cardapio_id);
-        setTipoCardapio(tipoCardapioData);
-        
-        // Buscar todas as categorias e produtos
-        const [categoriasData, produtosData] = await Promise.all([
-          getCategorias(),
-          getProdutos()
-        ]);
-        
-        // Filtrar apenas categorias e produtos ativos
-        const categoriasAtivas = categoriasData.filter(cat => cat.ativo);
-        const produtosAtivos = produtosData.filter(prod => prod.ativo);
-        
-        setProdutos(produtosAtivos);
-        
-        // Agrupar categorias por tipo de cardápio
-        const agrupamento: {[key: string]: Categoria[]} = {};
-        const tiposNomes: {[key: string]: string} = {};
-        
-        for (const categoria of categoriasAtivas) {
-          if (!agrupamento[categoria.tipo_cardapio_id]) {
-            agrupamento[categoria.tipo_cardapio_id] = [];
-            
-            // Buscar o nome do tipo de cardápio para exibição
-            try {
-              const tipoInfo = await getTipoCardapioById(categoria.tipo_cardapio_id);
-              tiposNomes[categoria.tipo_cardapio_id] = tipoInfo.nome;
-            } catch (err) {
-              console.error(`Erro ao buscar tipo de cardápio ${categoria.tipo_cardapio_id}:`, err);
-              tiposNomes[categoria.tipo_cardapio_id] = 'Desconhecido';
-            }
-          }
-          
-          agrupamento[categoria.tipo_cardapio_id].push(categoria);
-        }
-        
-        // Ordenar categorias por ordem em cada grupo
-        for (const tipoId in agrupamento) {
-          agrupamento[tipoId].sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
-        }
-        
-        setCategoriasAgrupadas(agrupamento);
-        setTiposCardapio(tiposNomes);
-        
-        // Carregar pedidos de entrega
-        await carregarPedidosEntrega();
-        
-      } catch (error) {
-        console.error('Erro ao carregar dados:', error);
-        setError('Não foi possível carregar o cardápio. Tente novamente mais tarde.');
-      } finally {
-        setIsLoading(false);
+    // Verificar se precisamos carregar os dados ou usar cache
+    if (!cacheGlobal.dadosCarregados) {
+      carregarDados();
+    } else {
+      // Usar dados do cache
+      setIsLoading(false);
+      
+      // Se já temos categorias e tipo de cardápio no cache, inicializar a aba
+      if (Object.keys(cacheGlobal.categoriasAgrupadas).length > 0 && cacheGlobal.tipoCardapio) {
+        // Definir aba principal padrão
+        setAbaPrincipalAtiva(AbaPrincipal.PRATOS_NORMAIS);
       }
     }
-    
-    carregarDados();
   }, []);
 
   // Efeito para garantir que uma categoria seja selecionada automaticamente
@@ -192,6 +158,106 @@ export default function EntregaPage() {
       }
     }
   }, [categoriasAgrupadas, tipoCardapio, abaPrincipalAtiva, categoriaAtiva]);
+
+  // Função para carregar dados do cardápio e pedidos de entrega
+  const carregarDados = async () => {
+    try {
+      setIsLoading(true);
+      
+      // Buscar todas as categorias e produtos
+      const [categoriasData, produtosData] = await Promise.all([
+        getCategorias(),
+        getProdutos()
+      ]);
+      
+      // Filtrar apenas categorias e produtos ativos
+      const categoriasAtivas = categoriasData.filter(cat => cat.ativo);
+      const produtosAtivos = produtosData.filter(prod => prod.ativo);
+      
+      setProdutos(produtosAtivos);
+      // Atualizar cache global
+      cacheGlobal.produtos = produtosAtivos;
+      
+      // Agrupar categorias por tipo de cardápio
+      const agrupamento: {[key: string]: Categoria[]} = {};
+      const tiposNomes: {[key: string]: string} = {};
+      
+      for (const categoria of categoriasAtivas) {
+        if (!agrupamento[categoria.tipo_cardapio_id]) {
+          agrupamento[categoria.tipo_cardapio_id] = [];
+          
+          // Buscar o nome do tipo de cardápio para exibição
+          try {
+            const tipoInfo = await getTipoCardapioById(categoria.tipo_cardapio_id);
+            tiposNomes[categoria.tipo_cardapio_id] = tipoInfo.nome;
+          } catch (_) {
+            console.error(`Erro ao buscar tipo de cardápio ${categoria.tipo_cardapio_id}:`, _);
+            tiposNomes[categoria.tipo_cardapio_id] = 'Desconhecido';
+          }
+        }
+        
+        agrupamento[categoria.tipo_cardapio_id].push(categoria);
+      }
+      
+      // Ordenar categorias por ordem em cada grupo
+      for (const tipoId in agrupamento) {
+        agrupamento[tipoId].sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
+      }
+      
+      setCategoriasAgrupadas(agrupamento);
+      setTiposCardapio(tiposNomes);
+      
+      // Atualizar cache global
+      cacheGlobal.categoriasAgrupadas = agrupamento;
+      cacheGlobal.tiposCardapio = tiposNomes;
+      
+      // Buscar a mesa de entrega para obter o tipo de cardápio principal (se existir)
+      try {
+        const mesaEntregaData = await getMesaById(MESA_ENTREGA_ID);
+        
+        // Se a mesa existe e tem cardápio associado, definir como tipo principal
+        if (mesaEntregaData && mesaEntregaData.tipo_cardapio_id) {
+          const tipoCardapioData = await getTipoCardapioById(mesaEntregaData.tipo_cardapio_id);
+          setTipoCardapio(tipoCardapioData);
+          cacheGlobal.tipoCardapio = tipoCardapioData;
+        } else {
+          // Se não tem cardápio específico, pegar o primeiro tipo disponível
+          const primeiroTipoId = Object.keys(agrupamento)[0];
+          if (primeiroTipoId) {
+            const tipoCardapioData = await getTipoCardapioById(primeiroTipoId);
+            setTipoCardapio(tipoCardapioData);
+            cacheGlobal.tipoCardapio = tipoCardapioData;
+          }
+        }
+      } catch (err) {
+        console.error('Erro ao buscar mesa de entrega:', err);
+        // Tentar usar o primeiro tipo de cardápio disponível
+        const primeiroTipoId = Object.keys(agrupamento)[0];
+        if (primeiroTipoId) {
+          try {
+            const tipoCardapioData = await getTipoCardapioById(primeiroTipoId);
+            setTipoCardapio(tipoCardapioData);
+            cacheGlobal.tipoCardapio = tipoCardapioData;
+          } catch (error) {
+            console.error('Erro ao buscar tipo de cardápio:', error);
+            toast.error('Não foi possível carregar o cardápio');
+          }
+        }
+      }
+      
+      // Buscar pedidos de entrega existentes
+      await carregarPedidosEntrega();
+      
+      // Marcar que dados foram carregados
+      cacheGlobal.dadosCarregados = true;
+      
+    } catch (error) {
+      console.error('Erro ao carregar dados:', error);
+      setError('Não foi possível carregar os dados. Tente novamente mais tarde.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Funções para gerenciar o carrinho
   const adicionarAoCarrinho = () => {
@@ -377,6 +443,9 @@ export default function EntregaPage() {
         (a, b) => new Date(b.criado_em).getTime() - new Date(a.criado_em).getTime()
       );
       setPedidosEntrega(pedidosOrdenados);
+      
+      // Atualizar cache global
+      cacheGlobal.pedidosEntrega = pedidosOrdenados;
     } catch (err) {
       console.error('Erro ao carregar pedidos de entrega:', err);
       toast.error('Não foi possível carregar pedidos de entrega');
@@ -463,6 +532,62 @@ export default function EntregaPage() {
     }
   };
 
+  // Funções de atualização de status de pedidos
+  const atualizarStatusPedido = async (pedidoId: string, novoStatus: StatusPedido) => {
+    try {
+      await updatePedido(pedidoId, { status: novoStatus });
+      
+      // Atualizar o pedido localmente antes de buscar da API
+      const pedidosAtualizados = pedidosEntrega.map(pedido => 
+        pedido.id === pedidoId ? { ...pedido, status: novoStatus } : pedido
+      );
+      
+      setPedidosEntrega(pedidosAtualizados);
+      
+      // Atualizar também no cache global
+      cacheGlobal.pedidosEntrega = pedidosAtualizados;
+      
+      // Atualizar o pedido selecionado se for o mesmo
+      if (pedidoSelecionado && pedidoSelecionado.id === pedidoId) {
+        setPedidoSelecionado({ ...pedidoSelecionado, status: novoStatus });
+      }
+      
+      // Mostrar mensagem de sucesso
+      let mensagem = 'Status atualizado com sucesso!';
+      if (novoStatus === StatusPedido.EM_ANDAMENTO) {
+        mensagem = 'Pedido em preparo!';
+      } else if (novoStatus === StatusPedido.FINALIZADO) {
+        mensagem = 'Pedido finalizado!';
+      } else if (novoStatus === StatusPedido.CANCELADO) {
+        mensagem = 'Pedido cancelado!';
+      }
+      
+      toast.success(mensagem);
+      
+    } catch (error) {
+      console.error(`Erro ao atualizar status para ${novoStatus}:`, error);
+      toast.error(`Erro ao atualizar status do pedido para ${novoStatus}`);
+    }
+  };
+  
+  const iniciarPreparo = (pedidoId: string) => {
+    if (confirm('Confirmar início do preparo deste pedido?')) {
+      atualizarStatusPedido(pedidoId, StatusPedido.EM_ANDAMENTO);
+    }
+  };
+  
+  const finalizarPedido = (pedidoId: string) => {
+    if (confirm('Confirmar que o pedido foi entregue?')) {
+      atualizarStatusPedido(pedidoId, StatusPedido.FINALIZADO);
+    }
+  };
+  
+  const cancelarPedido = (pedidoId: string) => {
+    if (confirm('Tem certeza que deseja cancelar este pedido?')) {
+      atualizarStatusPedido(pedidoId, StatusPedido.CANCELADO);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center py-8">
@@ -483,7 +608,7 @@ export default function EntregaPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto p-4 bg-slate-900 min-h-screen text-white">
+    <div className="w-full h-full">
       <Toaster position="top-center" />
       
       <div className="flex justify-between items-center mb-6">
@@ -955,38 +1080,14 @@ export default function EntregaPage() {
                     {pedidoSelecionado.status === StatusPedido.ABERTO && (
                       <>
                         <button
-                          onClick={() => {
-                            if (confirm('Confirmar início do preparo deste pedido?')) {
-                              updatePedido(pedidoSelecionado.id, { 
-                                status: StatusPedido.EM_ANDAMENTO 
-                              }).then(() => {
-                                toast.success('Pedido em preparo!');
-                                carregarPedidosEntrega();
-                              }).catch(err => {
-                                console.error('Erro ao atualizar status:', err);
-                                toast.error('Erro ao atualizar status do pedido');
-                              });
-                            }
-                          }}
+                          onClick={() => iniciarPreparo(pedidoSelecionado.id)}
                           className="py-2 bg-yellow-600 text-white rounded-md font-medium hover:bg-yellow-500"
                         >
                           Iniciar Preparo
                         </button>
                         
                         <button
-                          onClick={() => {
-                            if (confirm('Tem certeza que deseja cancelar este pedido?')) {
-                              updatePedido(pedidoSelecionado.id, { 
-                                status: StatusPedido.CANCELADO 
-                              }).then(() => {
-                                toast.success('Pedido cancelado!');
-                                carregarPedidosEntrega();
-                              }).catch(err => {
-                                console.error('Erro ao cancelar pedido:', err);
-                                toast.error('Erro ao cancelar pedido');
-                              });
-                            }
-                          }}
+                          onClick={() => cancelarPedido(pedidoSelecionado.id)}
                           className="py-2 bg-red-600 text-white rounded-md font-medium hover:bg-red-500"
                         >
                           Cancelar Pedido
@@ -997,38 +1098,14 @@ export default function EntregaPage() {
                     {pedidoSelecionado.status === StatusPedido.EM_ANDAMENTO && (
                       <>
                         <button
-                          onClick={() => {
-                            if (confirm('Confirmar que o pedido foi entregue?')) {
-                              updatePedido(pedidoSelecionado.id, { 
-                                status: StatusPedido.FINALIZADO 
-                              }).then(() => {
-                                toast.success('Pedido finalizado!');
-                                carregarPedidosEntrega();
-                              }).catch(err => {
-                                console.error('Erro ao finalizar pedido:', err);
-                                toast.error('Erro ao finalizar pedido');
-                              });
-                            }
-                          }}
+                          onClick={() => finalizarPedido(pedidoSelecionado.id)}
                           className="py-2 bg-green-600 text-white rounded-md font-medium hover:bg-green-500"
                         >
                           Finalizar Entrega
                         </button>
                         
                         <button
-                          onClick={() => {
-                            if (confirm('Tem certeza que deseja cancelar este pedido?')) {
-                              updatePedido(pedidoSelecionado.id, { 
-                                status: StatusPedido.CANCELADO 
-                              }).then(() => {
-                                toast.success('Pedido cancelado!');
-                                carregarPedidosEntrega();
-                              }).catch(err => {
-                                console.error('Erro ao cancelar pedido:', err);
-                                toast.error('Erro ao cancelar pedido');
-                              });
-                            }
-                          }}
+                          onClick={() => cancelarPedido(pedidoSelecionado.id)}
                           className="py-2 bg-red-600 text-white rounded-md font-medium hover:bg-red-500"
                         >
                           Cancelar Pedido
@@ -1038,15 +1115,13 @@ export default function EntregaPage() {
                     
                     {(pedidoSelecionado.status === StatusPedido.FINALIZADO || 
                       pedidoSelecionado.status === StatusPedido.CANCELADO) && (
-                      <button
-                        onClick={() => {
-                          // Imprimir o comprovante ou recibo
-                          window.open(`/admin/impressao?pedidoId=${pedidoSelecionado.id}&modo=completo`, '_blank');
-                        }}
-                        className="py-2 col-span-2 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-500"
+                      <Link
+                        href={`/admin/impressao?pedidoId=${pedidoSelecionado.id}&modo=completo`}
+                        className="py-2 col-span-2 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-500 text-center"
+                        target="_blank"
                       >
                         Imprimir Comprovante
-                      </button>
+                      </Link>
                     )}
                   </div>
                 </div>
@@ -1062,9 +1137,9 @@ export default function EntregaPage() {
                 </button>
               </div>
             )}
+          </div>
         </div>
-      </div>
       )}
     </div>
   );
-}
+} 

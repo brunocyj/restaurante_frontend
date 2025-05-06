@@ -12,6 +12,7 @@ import Link from 'next/link';
 import Cardapio from './components/Cardapio';
 import Mesa from './components/Mesa';
 import Pedido from './components/Pedido';
+import Entrega from './components/Entrega';
 
 interface UserData {
   username: string;
@@ -20,13 +21,13 @@ interface UserData {
   [key: string]: string | string[] | undefined;
 }
 
-type TabType = 'dashboard' | 'mesas' | 'pedidos' | 'cardapio';
+type TabType = 'mesas' | 'entrega' | 'pedidos' | 'cardapio' | 'dashboard';
 
 export default function AdminPage() {
   const router = useRouter();
   const [userData, setUserData] = useState<UserData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<TabType>('dashboard');
+  const [activeTab, setActiveTab] = useState<TabType>('mesas');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
   // Estados para o dashboard
@@ -133,12 +134,6 @@ export default function AdminPage() {
             >
               Impressão
             </Link>
-            <Link
-              href="/admin/entrega"
-              className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-slate-900"
-            >
-              Entrega
-            </Link>
             <span className="text-sm text-slate-400">
               Olá, <span className="font-medium text-slate-200">{userData?.username}</span>
             </span>
@@ -156,16 +151,6 @@ export default function AdminPage() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <nav className="hidden md:flex md:-mb-px md:space-x-8">
             <button
-              onClick={() => setActiveTab('dashboard')}
-              className={`border-b-2 px-1 py-4 text-sm font-medium ${
-                activeTab === 'dashboard'
-                  ? 'border-amber-500 text-amber-500'
-                  : 'border-transparent text-slate-400 hover:border-slate-700 hover:text-slate-300'
-              }`}
-            >
-              Dashboard
-            </button>
-            <button
               onClick={() => setActiveTab('mesas')}
               className={`border-b-2 px-1 py-4 text-sm font-medium ${
                 activeTab === 'mesas'
@@ -174,6 +159,16 @@ export default function AdminPage() {
               }`}
             >
               Mesas
+            </button>
+            <button
+              onClick={() => setActiveTab('entrega')}
+              className={`border-b-2 px-1 py-4 text-sm font-medium ${
+                activeTab === 'entrega'
+                  ? 'border-amber-500 text-amber-500'
+                  : 'border-transparent text-slate-400 hover:border-slate-700 hover:text-slate-300'
+              }`}
+            >
+              外卖
             </button>
             <button
               onClick={() => setActiveTab('pedidos')}
@@ -195,16 +190,27 @@ export default function AdminPage() {
             >
               Cardápio
             </button>
+            <button
+              onClick={() => setActiveTab('dashboard')}
+              className={`border-b-2 px-1 py-4 text-sm font-medium ${
+                activeTab === 'dashboard'
+                  ? 'border-amber-500 text-amber-500'
+                  : 'border-transparent text-slate-400 hover:border-slate-700 hover:text-slate-300'
+              }`}
+            >
+              Dashboard
+            </button>
           </nav>
           
           <div className="md:hidden py-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center">
                 <span className="text-amber-500 font-medium">
-                  {activeTab === 'dashboard' && 'Dashboard'}
                   {activeTab === 'mesas' && 'Mesas'}
+                  {activeTab === 'entrega' && 'Entrega'}
                   {activeTab === 'pedidos' && 'Pedidos'}
                   {activeTab === 'cardapio' && 'Cardápio'}
+                  {activeTab === 'dashboard' && 'Dashboard'}
                 </span>
               </div>
               <button
@@ -221,19 +227,6 @@ export default function AdminPage() {
               <div className="mt-2 space-y-1 px-2 pb-3 pt-2">
                 <button
                   onClick={() => {
-                    setActiveTab('dashboard');
-                    setMobileMenuOpen(false);
-                  }}
-                  className={`block w-full text-left rounded-md px-3 py-2 text-base font-medium ${
-                    activeTab === 'dashboard'
-                      ? 'bg-slate-800 text-amber-500'
-                      : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-                  }`}
-                >
-                  Dashboard
-                </button>
-                <button
-                  onClick={() => {
                     setActiveTab('mesas');
                     setMobileMenuOpen(false);
                   }}
@@ -243,7 +236,20 @@ export default function AdminPage() {
                       : 'text-slate-400 hover:bg-slate-800 hover:text-white'
                   }`}
                 >
-                  Mesas
+                  Mesas & Atendimentos
+                </button>
+                <button
+                  onClick={() => {
+                    setActiveTab('entrega');
+                    setMobileMenuOpen(false);
+                  }}
+                  className={`block w-full text-left rounded-md px-3 py-2 text-base font-medium ${
+                    activeTab === 'entrega'
+                      ? 'bg-slate-800 text-amber-500'
+                      : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                  }`}
+                >
+                  Delivery
                 </button>
                 <button
                   onClick={() => {
@@ -256,7 +262,7 @@ export default function AdminPage() {
                       : 'text-slate-400 hover:bg-slate-800 hover:text-white'
                   }`}
                 >
-                  Pedidos
+                  Histórico de Pedidos
                 </button>
                 <button
                   onClick={() => {
@@ -269,7 +275,20 @@ export default function AdminPage() {
                       : 'text-slate-400 hover:bg-slate-800 hover:text-white'
                   }`}
                 >
-                  Cardápio
+                  Gerenciar Cardápio
+                </button>
+                <button
+                  onClick={() => {
+                    setActiveTab('dashboard');
+                    setMobileMenuOpen(false);
+                  }}
+                  className={`block w-full text-left rounded-md px-3 py-2 text-base font-medium ${
+                    activeTab === 'dashboard'
+                      ? 'bg-slate-800 text-amber-500'
+                      : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                  }`}
+                >
+                  Visão Geral
                 </button>
               </div>
             )}
@@ -279,6 +298,10 @@ export default function AdminPage() {
 
       <main className="flex-grow px-4 py-8 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
+          {activeTab === 'mesas' && <Mesa />}
+          {activeTab === 'entrega' && <Entrega />}
+          {activeTab === 'pedidos' && <Pedido />}
+          {activeTab === 'cardapio' && <Cardapio />}
           {activeTab === 'dashboard' && (
             <div className="rounded-lg border border-slate-800 bg-slate-900 p-6 shadow-md">
               <div className="flex justify-between items-center mb-6">
@@ -459,10 +482,6 @@ export default function AdminPage() {
               </div>
             </div>
           )}
-          
-          {activeTab === 'mesas' && <Mesa />}
-          {activeTab === 'pedidos' && <Pedido />}
-          {activeTab === 'cardapio' && <Cardapio />}
         </div>
       </main>
     </div>
