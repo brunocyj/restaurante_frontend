@@ -10,6 +10,7 @@ import {
     MesaStatus
 } from '@/lib/mesa';
 import { getTiposCardapio, TipoCardapio } from '@/lib/cardapio';
+import { verificarTodasAsMesas } from '@/lib/mesaHelper';
 import axios from 'axios';
 
 // Definindo uma interface estendida para uso interno no componente
@@ -91,29 +92,58 @@ export default function Mesa() {
         }
     };
 
-    useEffect(() => {
-        async function fetchData() {
-            try {
-                setIsLoading(true);
-                const [mesasResponse, tiposCardapioResponse] = await Promise.all([
-                    getMesas(),
-                    getTiposCardapio()
-                ]);
-                setMesas(mesasResponse || []);
-                setMesasFiltradas(mesasResponse || []);
-                setTiposCardapio(tiposCardapioResponse || []);
-                setError(null);
-            } catch (err) {
-                console.error('Erro ao carregar dados:', err);
-                setError('Falha ao carregar os dados. Tente novamente mais tarde.');
-                setMesas([]);
-                setMesasFiltradas([]);
-                setTiposCardapio([]);
-            } finally {
-                setIsLoading(false);
+    // Função para carregar e atualizar mesas
+    const carregarMesas = async (verificarStatus = false) => {
+        setIsLoading(true);
+        setError(null);
+        
+        try {
+            const response = await getMesas();
+            setMesas(response || []);
+            
+            // Se solicitado, verificar e atualizar o status das mesas com base nos pedidos ativos
+            if (verificarStatus && response && response.length > 0) {
+                const mesaIds = response.map(mesa => mesa.id);
+                
+                // Mostrar mensagem de carregamento
+                setSuccess('Verificando status das mesas com base nos pedidos ativos...');
+                
+                // Verificar e atualizar status das mesas
+                const mesasAtualizadas = await verificarTodasAsMesas(mesaIds);
+                
+                if (mesasAtualizadas > 0) {
+                    // Se houve atualizações, recarregar as mesas novamente para obter os estados atualizados
+                    const mesasAtualizadasResponse = await getMesas();
+                    setMesas(mesasAtualizadasResponse || []);
+                    setSuccess(`Status de ${mesasAtualizadas} mesas atualizado com base nos pedidos ativos.`);
+                } else {
+                    setSuccess('Mesas carregadas com sucesso. Não foi necessário atualizar o status de nenhuma mesa.');
+                }
+            } else {
+                setSuccess('Mesas carregadas com sucesso.');
             }
+        } catch (error) {
+            console.error('Erro ao carregar mesas:', error);
+            setError('Falha ao carregar as mesas. Tente novamente mais tarde.');
+        } finally {
+            setIsLoading(false);
         }
-        fetchData();
+    };
+
+    // Efeito para carregar mesas e tipos de cardápio quando o componente é montado
+    useEffect(() => {
+        // Carregar tipos de cardápio
+        getTiposCardapio()
+            .then(response => {
+                setTiposCardapio(response);
+            })
+            .catch(error => {
+                console.error('Erro ao carregar tipos de cardápio:', error);
+                setError('Falha ao carregar os tipos de cardápio.');
+            });
+        
+        // Carregar mesas e verificar status
+        carregarMesas(true); // Passa true para verificar o status das mesas
     }, []);
 
     // Função para obter seções únicas a partir dos IDs das mesas
@@ -414,17 +444,7 @@ export default function Mesa() {
                     </div>
                     <button
                         onClick={() => {
-                            setIsLoading(true);
-                            setFiltroStatus('TODOS');
-                            getMesas().then(response => {
-                                setMesas(response || []);
-                                setMesasFiltradas(response || []);
-                                setIsLoading(false);
-                            }).catch(err => {
-                                console.error('Erro ao atualizar mesas:', err);
-                                setError('Falha ao atualizar as mesas. Tente novamente mais tarde.');
-                                setIsLoading(false);
-                            });
+                            carregarMesas(true); // Chama com true para verificar o status das mesas
                         }}
                         className="rounded-md bg-slate-800 px-3 py-1 text-xs text-white hover:bg-slate-700 flex items-center gap-1"
                     >
@@ -496,7 +516,7 @@ export default function Mesa() {
                         <div>
                             <p className="text-sm font-medium text-slate-400">Mesas Ocupadas</p>
                             <p className="text-2xl font-bold text-white">
-                                {mesas.filter(mesa => mesa.status === MesaStatus.OCUPADA).length}
+                                {mesas.filter(mesa => mesa.status === MesaStatus.OCUPADA).length-1}
                             </p>
                         </div>
                     </div>

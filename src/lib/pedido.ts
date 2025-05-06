@@ -1,5 +1,6 @@
 import axios from 'axios';
 import api from './api';
+import { marcarMesaComoOcupada, verificarEAtualizarStatusMesa } from './mesaHelper';
 
 export enum StatusPedido {
   ABERTO = "ABERTO",
@@ -67,7 +68,8 @@ export const getPedidoById = async (id: string) => {
   }
 };
 
-export const createPedido = async (pedidoData: {
+// Função original de criação de pedido
+const _createPedido = async (pedidoData: {
   mesa_id: string;
   itens: ItemPedido[];
   observacao_geral?: string;
@@ -84,7 +86,26 @@ export const createPedido = async (pedidoData: {
   }
 };
 
-export const updatePedido = async (
+// Função wrapper que também atualiza o status da mesa
+export const createPedido = async (pedidoData: {
+  mesa_id: string;
+  itens: ItemPedido[];
+  observacao_geral?: string;
+  manual?: boolean;
+}) => {
+  // Criar o pedido usando a função original
+  const novoPedido = await _createPedido(pedidoData);
+  
+  // Marcar mesa como ocupada após criar o pedido
+  if (novoPedido && novoPedido.mesa_id) {
+    await marcarMesaComoOcupada(novoPedido.mesa_id);
+  }
+  
+  return novoPedido;
+};
+
+// Função original de atualização de pedido
+const _updatePedido = async (
   id: string,
   pedidoData: {
     status?: StatusPedido;
@@ -123,6 +144,36 @@ export const updatePedido = async (
     
     throw error; // Re-throw para tratamento no componente
   }
+};
+
+// Função wrapper que também atualiza o status da mesa
+export const updatePedido = async (
+  id: string,
+  pedidoData: {
+    status?: StatusPedido;
+    observacao_geral?: string;
+    mesa_id?: string;
+    metodo_pagamento?: MetodoPagamento;
+  }
+) => {
+  // Atualizar o pedido usando a função original
+  const pedidoAtualizado = await _updatePedido(id, pedidoData);
+  
+  // Se o status foi alterado para FINALIZADO ou CANCELADO, verificar se existem outros pedidos ativos
+  // e atualizar o status da mesa conforme necessário
+  if (pedidoAtualizado && pedidoAtualizado.mesa_id && 
+      (pedidoData.status === StatusPedido.FINALIZADO || pedidoData.status === StatusPedido.CANCELADO)) {
+    try {
+      // Pequeno delay para garantir que a API processou a atualização do pedido
+      setTimeout(async () => {
+        await verificarEAtualizarStatusMesa(pedidoAtualizado.mesa_id);
+      }, 500);
+    } catch (error) {
+      console.error(`Erro ao verificar status da mesa ${pedidoAtualizado.mesa_id}:`, error);
+    }
+  }
+  
+  return pedidoAtualizado;
 };
 
 export const deletePedido = async (id: string) => {
