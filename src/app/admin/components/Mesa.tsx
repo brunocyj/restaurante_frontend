@@ -105,23 +105,18 @@ export default function Mesa() {
             if (verificarStatus && response && response.length > 0) {
                 const mesaIds = response.map(mesa => mesa.id);
                 
-                // Mostrar mensagem de carregamento
-                setSuccess('Verificando status das mesas com base nos pedidos ativos...');
-                
-                // Verificar e atualizar status das mesas
+                // Verificar e atualizar status das mesas sem mostrar mensagem
                 const mesasAtualizadas = await verificarTodasAsMesas(mesaIds);
                 
                 if (mesasAtualizadas > 0) {
                     // Se houve atualizações, recarregar as mesas novamente para obter os estados atualizados
                     const mesasAtualizadasResponse = await getMesas();
                     setMesas(mesasAtualizadasResponse || []);
-                    setSuccess(`Status de ${mesasAtualizadas} mesas atualizado com base nos pedidos ativos.`);
-                } else {
-                    setSuccess('Mesas carregadas com sucesso. Não foi necessário atualizar o status de nenhuma mesa.');
+                    // Não exibir mensagem de sucesso
                 }
-            } else {
-                setSuccess('Mesas carregadas com sucesso.');
+                // Não exibir mensagem de sucesso quando não há atualizações
             }
+            // Não exibir mensagem genérica de sucesso
         } catch (error) {
             console.error('Erro ao carregar mesas:', error);
             setError('Falha ao carregar as mesas. Tente novamente mais tarde.');
@@ -403,157 +398,127 @@ export default function Mesa() {
 
     return (
         <div className="rounded-lg border border-slate-800 bg-slate-900 p-6 shadow-md">
-            <div className="mb-6 flex items-center justify-between">
+            {/* Cabeçalho com título e estatísticas em linha horizontal */}
+            <div className="mb-4 flex items-center justify-between flex-wrap gap-y-3">
                 <h2 className="text-xl font-semibold text-white">Gerenciamento de Mesas</h2>
-                <button
-                    onClick={handleOpenCreateModal}
-                    className="rounded-md bg-amber-500 px-4 py-2 text-sm font-medium text-white hover:bg-amber-600 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-slate-900"
-                >
-                    Nova Mesa
-                </button>
-            </div>
-
-            {/* Filtro de status */}
-            <div className="mb-6">
-                <div className="flex flex-wrap items-center justify-between">
-                    <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-sm font-medium text-slate-400">Filtrar por status:</span>
-                        <button
-                            onClick={() => setFiltroStatus('TODOS')}
-                            className={`rounded-full px-3 py-1 text-xs font-medium ${
-                                filtroStatus === 'TODOS'
-                                    ? 'bg-slate-700 text-white'
-                                    : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white'
-                            }`}
-                        >
-                            Todos
-                        </button>
-                        {statusOptions.map(option => (
-                            <button
-                                key={option.value}
-                                onClick={() => setFiltroStatus(option.value)}
-                                className={`rounded-full px-3 py-1 text-xs font-medium ${
-                                    filtroStatus === option.value
-                                        ? `${option.color} text-white`
-                                        : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white'
-                                }`}
-                            >
-                                {option.label}
-                            </button>
-                        ))}
-                    </div>
-                    <button
-                        onClick={() => {
-                            carregarMesas(true); // Chama com true para verificar o status das mesas
-                        }}
-                        className="rounded-md bg-slate-800 px-3 py-1 text-xs text-white hover:bg-slate-700 flex items-center gap-1"
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                        </svg>
-                        Atualizar
-                    </button>
-                </div>
-            </div>
-
-            {/* Filtro de seções/áreas (A, B, C, etc.) */}
-            <div className="mb-8">
-                <div className="flex flex-col space-y-3">
-                    <span className="text-base font-medium text-white">Filtrar por seção:</span>
-                    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:flex lg:flex-wrap">
-                        <button
-                            onClick={() => setFiltroSecao('TODAS')}
-                            className={`rounded-lg border px-6 py-3 text-base font-medium transition-all duration-200 ${
-                                filtroSecao === 'TODAS'
-                                    ? 'border-amber-500 bg-amber-600 text-white shadow-lg shadow-amber-900/30'
-                                    : 'border-slate-700 bg-slate-800 text-slate-300 hover:border-amber-500 hover:bg-slate-700 hover:text-white'
-                            }`}
-                        >
-                            Todas as seções
-                        </button>
-                        {ordenarSecoes(getSecoesUnicas()).map(secao => (
-                            <button
-                                key={secao}
-                                onClick={() => setFiltroSecao(secao)}
-                                className={`rounded-lg border px-6 py-3 text-base font-medium transition-all duration-200 ${
-                                    filtroSecao === secao
-                                        ? 'border-blue-500 bg-blue-600 text-white shadow-lg shadow-blue-900/30'
-                                        : 'border-slate-700 bg-slate-800 text-slate-300 hover:border-blue-500 hover:bg-slate-700 hover:text-white'
-                                }`}
-                            >
-                                {getNomeSecao(secao)}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-            </div>
-
-            {/* Estatísticas rápidas */}
-            <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
-                <div className="rounded-lg border border-slate-800 bg-slate-800/50 p-4">
-                    <div className="flex items-center">
-                        <div className="mr-4 flex h-10 w-10 items-center justify-center rounded-lg bg-green-500/20 text-green-500">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                
+                {/* Estatísticas em linha */}
+                <div className="flex items-center gap-3">
+                    <div className="flex items-center text-green-500">
+                        <div className="mr-1 flex h-5 w-5 items-center justify-center rounded-full bg-green-500/20">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                         </div>
-                        <div>
-                            <p className="text-sm font-medium text-slate-400">Mesas Livres</p>
-                            <p className="text-2xl font-bold text-white">
-                                {mesas.filter(mesa => mesa.status === MesaStatus.LIVRE).length}
-                            </p>
-                        </div>
+                        <span className="text-xs">{mesas.filter(mesa => mesa.status === MesaStatus.LIVRE).length}</span>
                     </div>
-                </div>
-                
-                <div className="rounded-lg border border-slate-800 bg-slate-800/50 p-4">
-                    <div className="flex items-center">
-                        <div className="mr-4 flex h-10 w-10 items-center justify-center rounded-lg bg-red-500/20 text-red-500">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    
+                    <div className="flex items-center text-red-500">
+                        <div className="mr-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500/20">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                             </svg>
                         </div>
-                        <div>
-                            <p className="text-sm font-medium text-slate-400">Mesas Ocupadas</p>
-                            <p className="text-2xl font-bold text-white">
-                                {mesas.filter(mesa => mesa.status === MesaStatus.OCUPADA).length}
-                            </p>
-                        </div>
+                        <span className="text-xs">{mesas.filter(mesa => mesa.status === MesaStatus.OCUPADA).length}</span>
                     </div>
-                </div>
-                
-                <div className="rounded-lg border border-slate-800 bg-slate-800/50 p-4">
-                    <div className="flex items-center">
-                        <div className="mr-4 flex h-10 w-10 items-center justify-center rounded-lg bg-yellow-500/20 text-yellow-500">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    
+                    <div className="flex items-center text-yellow-500">
+                        <div className="mr-1 flex h-5 w-5 items-center justify-center rounded-full bg-yellow-500/20">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                         </div>
-                        <div>
-                            <p className="text-sm font-medium text-slate-400">Mesas Reservadas</p>
-                            <p className="text-2xl font-bold text-white">
-                                {mesas.filter(mesa => mesa.status === MesaStatus.RESERVADA).length}
-                            </p>
-                        </div>
+                        <span className="text-xs">{mesas.filter(mesa => mesa.status === MesaStatus.RESERVADA).length}</span>
                     </div>
-                </div>
-                
-                <div className="rounded-lg border border-slate-800 bg-slate-800/50 p-4">
-                    <div className="flex items-center">
-                        <div className="mr-4 flex h-10 w-10 items-center justify-center rounded-lg bg-gray-500/20 text-gray-500">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    
+                    <div className="flex items-center text-gray-500">
+                        <div className="mr-1 flex h-5 w-5 items-center justify-center rounded-full bg-gray-500/20">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                             </svg>
                         </div>
-                        <div>
-                            <p className="text-sm font-medium text-slate-400">Em Manutenção</p>
-                            <p className="text-2xl font-bold text-white">
-                                {mesas.filter(mesa => mesa.status === MesaStatus.MANUTENCAO).length}
-                            </p>
-                        </div>
+                        <span className="text-xs">{mesas.filter(mesa => mesa.status === MesaStatus.MANUTENCAO).length}</span>
                     </div>
+                    
+                    <button
+                        onClick={handleOpenCreateModal}
+                        className="ml-2 rounded-md bg-amber-500 px-3 py-1 text-xs font-medium text-white hover:bg-amber-600"
+                    >
+                        Nova Mesa
+                    </button>
                 </div>
+            </div>
+
+            {/* Filtros em uma única linha */}
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-y-2">
+                {/* Filtro de status */}
+                <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-xs font-medium text-slate-400">Status:</span>
+                    <button
+                        onClick={() => setFiltroStatus('TODOS')}
+                        className={`rounded-full px-2 py-0.5 text-xs ${
+                            filtroStatus === 'TODOS'
+                                ? 'bg-slate-700 text-white'
+                                : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white'
+                        }`}
+                    >
+                        Todos
+                    </button>
+                    {statusOptions.map(option => (
+                        <button
+                            key={option.value}
+                            onClick={() => setFiltroStatus(option.value)}
+                            className={`rounded-full px-2 py-0.5 text-xs ${
+                                filtroStatus === option.value
+                                    ? `${option.color} text-white`
+                                    : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white'
+                            }`}
+                        >
+                            {option.label}
+                        </button>
+                    ))}
+                </div>
+                
+                <button
+                    onClick={() => {
+                        carregarMesas(true);
+                    }}
+                    className="rounded-md bg-slate-800 px-2 py-0.5 text-xs text-white hover:bg-slate-700 flex items-center gap-1"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Atualizar
+                </button>
+            </div>
+
+            {/* Filtro de seções compacto */}
+            <div className="mb-4 flex flex-wrap items-center gap-2">
+                <span className="text-xs font-medium text-slate-400">Seção:</span>
+                <button
+                    onClick={() => setFiltroSecao('TODAS')}
+                    className={`rounded-md border px-2 py-0.5 text-xs ${
+                        filtroSecao === 'TODAS'
+                            ? 'border-amber-500 bg-amber-500/20 text-amber-400'
+                            : 'border-slate-700 bg-slate-800 text-slate-300 hover:border-amber-500/50'
+                    }`}
+                >
+                    Todas
+                </button>
+                {ordenarSecoes(getSecoesUnicas()).map(secao => (
+                    <button
+                        key={secao}
+                        onClick={() => setFiltroSecao(secao)}
+                        className={`rounded-md border px-2 py-0.5 text-xs ${
+                            filtroSecao === secao
+                                ? 'border-blue-500 bg-blue-500/20 text-blue-400'
+                                : 'border-slate-700 bg-slate-800 text-slate-300 hover:border-blue-500/50'
+                        }`}
+                    >
+                        {getNomeSecao(secao)}
+                    </button>
+                ))}
             </div>
 
             {/* Mensagens de erro e sucesso */}

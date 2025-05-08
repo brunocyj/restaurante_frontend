@@ -102,7 +102,7 @@ export default function QRCodePage() {
       if (!abaPrincipalAtiva) {
         const abaInicial = tipoCardapio.nome.toLowerCase().includes('hotpot') 
           ? AbaPrincipal.HOTPOT 
-          : AbaPrincipal.PRATOS_NORMAIS;
+          : AbaPrincipal.ESPETOS;
         setAbaPrincipalAtiva(abaInicial);
       }
       
@@ -341,9 +341,9 @@ export default function QRCodePage() {
     
     // Abas para cardápio normal
     return [
+      AbaPrincipal.ESPETOS,
       AbaPrincipal.PRATOS_NORMAIS,
       AbaPrincipal.PRATOS_ESPECIAIS,
-      AbaPrincipal.ESPETOS,
       AbaPrincipal.BEBIDAS,
       AbaPrincipal.SOBREMESAS
     ];
