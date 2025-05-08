@@ -962,9 +962,6 @@ export default function QRCodePage() {
           <div className="bg-slate-900 border border-slate-800 rounded-lg overflow-hidden sticky top-24">
             <div className="px-4 py-3 border-b border-slate-800 bg-slate-800/50">
               <h3 className="text-white font-medium flex items-center">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
                 Seu Pedido
                 {carrinho.length > 0 && (
                   <span className="ml-2 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
@@ -977,60 +974,14 @@ export default function QRCodePage() {
             <div className="overflow-y-auto max-h-[calc(100vh-200px)]">
               {carrinho.length === 0 ? (
                 <div className="py-8 text-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="mx-auto h-12 w-12 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                  </svg>
                   <p className="mt-4 text-slate-400">Seu carrinho está vazio</p>
                 </div>
               ) : (
-                <div className="space-y-3 p-4">
+                <div className="space-y-1 p-4">
                   {carrinho.map(item => (
-                    <div key={item.produto_id} className="rounded-md border border-slate-800 bg-slate-800/50 p-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <p className="font-medium text-white">{item.produto.nome}</p>
-                          {item.produto && 'descricao' in item.produto && item.produto['descricao'] && (
-                            <p className="text-xs text-slate-400 mt-1 mb-1 line-clamp-1">
-                              {item.produto['descricao']}
-                            </p>
-                          )}
-                          <div className="mt-1 flex text-sm text-slate-400">
-                            <p className="mr-4">Qtd: {item.quantidade}</p>
-                            <p>Valor: {formatarPreco(item.produto.preco * item.quantidade)}</p>
-                          </div>
-                          {item.observacoes && (
-                            <p className="mt-1 text-xs text-slate-500 line-clamp-1">
-                              Obs: {item.observacoes}
-                            </p>
-                          )}
-                        </div>
-                        <div className="flex flex-col space-y-1">
-                          <button 
-                            onClick={() => atualizarQuantidade(item.produto_id, item.quantidade + 1)}
-                            className="rounded-full bg-slate-700 p-1 text-white hover:bg-slate-600"
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                            </svg>
-                          </button>
-                          <button 
-                            onClick={() => atualizarQuantidade(item.produto_id, item.quantidade - 1)}
-                            className="rounded-full bg-slate-700 p-1 text-white hover:bg-slate-600"
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
-                            </svg>
-                          </button>
-                          <button 
-                            onClick={() => removerDoCarrinho(item.produto_id)}
-                            className="rounded-full bg-red-500/20 p-1 text-red-400 hover:bg-red-500/30"
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                          </button>
-                        </div>
-                      </div>
+                    <div key={item.produto_id} className="flex justify-between text-sm text-white">
+                      <span>{item.produto.nome}</span>
+                      <span>{item.quantidade} x {formatarPreco(item.produto.preco)}</span>
                     </div>
                   ))}
                 </div>
@@ -1039,17 +990,6 @@ export default function QRCodePage() {
             
             {carrinho.length > 0 && (
               <div className="border-t border-slate-800 p-4">
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-slate-300 mb-1">Observações gerais</label>
-                  <textarea 
-                    value={observacaoGeral}
-                    onChange={(e) => setObservacaoGeral(e.target.value)}
-                    rows={2}
-                    className="w-full rounded-md border border-slate-700 bg-slate-800 py-2 px-3 text-white shadow-sm focus:border-amber-500 focus:ring-amber-500 sm:text-sm"
-                    placeholder="Alguma observação para todo o pedido?"
-                  />
-                </div>
-                
                 <div className="flex items-center justify-between mb-4">
                   <p className="text-lg font-medium text-white">Total</p>
                   <p className="text-lg font-bold text-amber-500">{formatarPreco(calcularTotal())}</p>
@@ -1060,17 +1000,7 @@ export default function QRCodePage() {
                   disabled={enviandoPedido || carrinho.length === 0}
                   className="w-full rounded-md bg-amber-500 py-3 px-4 text-center font-medium text-white hover:bg-amber-600 disabled:opacity-50"
                 >
-                  {enviandoPedido ? (
-                    <div className="flex items-center justify-center space-x-2">
-                      <svg className="h-5 w-5 animate-spin text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      <span>Enviando...</span>
-                    </div>
-                  ) : (
-                    pedidoAtual ? 'Adicionar ao Pedido' : 'Finalizar Pedido'
-                  )}
+                  {enviandoPedido ? 'Enviando...' : 'Finalizar Pedido'}
                 </button>
               </div>
             )}
