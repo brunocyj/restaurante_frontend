@@ -516,7 +516,7 @@ export default function Mesa() {
                         <div>
                             <p className="text-sm font-medium text-slate-400">Mesas Ocupadas</p>
                             <p className="text-2xl font-bold text-white">
-                                {mesas.filter(mesa => mesa.status === MesaStatus.OCUPADA).length-1}
+                                {mesas.filter(mesa => mesa.status === MesaStatus.OCUPADA).length}
                             </p>
                         </div>
                     </div>
