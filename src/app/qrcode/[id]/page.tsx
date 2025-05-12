@@ -864,12 +864,19 @@ export default function QRCodePage() {
             {getProdutosPorCategoria(categoriaAtiva).map(produto => (
               <div 
                 key={produto.id} 
-                onClick={() => {
-                  setProdutoModal(produto);
-                  setQuantidadeModal(1);
-                  setObservacoesModal('');
-                }}
                 className="cursor-pointer rounded-lg border border-slate-800 bg-slate-900 p-4 shadow-md transition-transform hover:scale-[1.02]"
+                onClick={() => {
+                  const item = carrinho.find(item => item.produto_id === produto.id);
+                  if (item) {
+                    atualizarQuantidade(produto.id!, item.quantidade + 1); // Aumenta a quantidade se já estiver no carrinho
+                  } else {
+                    setCarrinho([...carrinho, {
+                      produto_id: produto.id!,
+                      quantidade: 1,
+                      produto
+                    }]); // Adiciona o produto ao carrinho
+                  }
+                }}
               >
                 <div className="flex flex-row items-center gap-3">
                   <div className="flex-1">
@@ -890,36 +897,21 @@ export default function QRCodePage() {
                     {produto.imagem_url && (
                       <div className="w-24 h-24 flex-shrink-0">
                         <div className="h-full w-full overflow-hidden rounded-md bg-slate-800 flex items-center justify-center relative">
-                          {(() => {
-                            try {
-                              return (
-                                <Image 
-                                  src={produto.imagem_url}
-                                  alt={produto.nome} 
-                                  fill
-                                  sizes="96px"
-                                  className="object-cover"
-                                  quality={80}
-                                  priority={false}
-                                  onError={(e) => {
-                                    console.error(`Erro ao carregar imagem para o produto ${produto.id}:`, produto.imagem_url);
-                                    const target = e.target as HTMLImageElement;
-                                    target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' className='h-12 w-12 text-slate-500' fill='none' viewBox='0 0 24 24' stroke='%236B7280'%3E%3Cpath strokeLinecap='round' strokeLinejoin='round' strokeWidth='2' d='M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z' /%3E%3C/svg%3E";
-                                  }}
-                                  unoptimized={produto.imagem_url.startsWith('http://') || !produto.imagem_url.includes('meizizi.com.br')}
-                                />
-                              );
-                            } catch (error) {
-                              console.error(`Erro ao renderizar imagem para o produto ${produto.id}:`, error);
-                              return (
-                                <div className="h-full w-full flex items-center justify-center bg-slate-800">
-                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                  </svg>
-                                </div>
-                              );
-                            }
-                          })()}
+                          <Image 
+                            src={produto.imagem_url}
+                            alt={produto.nome} 
+                            fill
+                            sizes="96px"
+                            className="object-cover"
+                            quality={80}
+                            priority={false}
+                            onError={(e) => {
+                              console.error(`Erro ao carregar imagem para o produto ${produto.id}:`, produto.imagem_url);
+                              const target = e.target as HTMLImageElement;
+                              target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' className='h-12 w-12 text-slate-500' fill='none' viewBox='0 0 24 24' stroke='%236B7280'%3E%3Cpath strokeLinecap='round' strokeLinejoin='round' strokeWidth='2' d='M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z' /%3E%3C/svg%3E";
+                            }}
+                            unoptimized={produto.imagem_url.startsWith('http://') || !produto.imagem_url.includes('meizizi.com.br')}
+                          />
                         </div>
                       </div>
                     )}
@@ -929,13 +921,13 @@ export default function QRCodePage() {
                         e.stopPropagation();
                         const item = carrinho.find(item => item.produto_id === produto.id);
                         if (item) {
-                          atualizarQuantidade(produto.id!, item.quantidade + 1);
+                          atualizarQuantidade(produto.id!, item.quantidade + 1); // Aumenta a quantidade
                         } else {
                           setCarrinho([...carrinho, {
                             produto_id: produto.id!,
                             quantidade: 1,
                             produto
-                          }]);
+                          }]); // Adiciona o produto ao carrinho
                         }
                       }}
                       className="rounded-full bg-amber-500 p-2 text-white hover:bg-amber-600 flex-shrink-0"
