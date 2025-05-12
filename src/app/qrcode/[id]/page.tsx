@@ -962,7 +962,7 @@ export default function QRCodePage() {
           <div className="bg-slate-900 border border-slate-800 rounded-lg overflow-hidden sticky top-24">
             <div className="px-4 py-3 border-b border-slate-800 bg-slate-800/50">
               <h3 className="text-white font-medium flex items-center">
-                Seu Pedido
+                Pedido - Mesa {mesa.id}
                 {carrinho.length > 0 && (
                   <span className="ml-2 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
                     {carrinho.reduce((total, item) => total + item.quantidade, 0)}
