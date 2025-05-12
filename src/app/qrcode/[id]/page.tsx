@@ -33,7 +33,6 @@ interface ItemCarrinho {
   };
 }
 
-// Enums para abas de navegação
 enum AbaPrincipal {
   HOTPOT = 'hotpot',
   PRATOS_ESPECIAIS = 'pratos_especiais',
