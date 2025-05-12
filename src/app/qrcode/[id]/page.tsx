@@ -979,9 +979,29 @@ export default function QRCodePage() {
               ) : (
                 <div className="space-y-1 p-4">
                   {carrinho.map(item => (
-                    <div key={item.produto_id} className="flex justify-between text-sm text-white">
-                      <span>{item.produto.nome}</span>
-                      <span>{item.quantidade} x {formatarPreco(item.produto.preco)}</span>
+                    <div key={item.produto_id} className="flex justify-between items-center text-sm text-white">
+                      <span className="flex-1">{item.produto.nome}</span>
+                      <span className="mr-2">{item.quantidade} x {formatarPreco(item.produto.preco)}</span>
+                      <div className="flex items-center space-x-2">
+                        <button 
+                          onClick={() => atualizarQuantidade(item.produto_id, item.quantidade - 1)}
+                          className="rounded-full bg-slate-700 p-1 text-white hover:bg-slate-600 transition duration-200"
+                          title="Reduzir quantidade"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+                          </svg>
+                        </button>
+                        <button 
+                          onClick={() => removerDoCarrinho(item.produto_id)}
+                          className="rounded-full bg-red-500 p-1 text-white hover:bg-red-600 transition duration-200"
+                          title="Remover item"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -998,7 +1018,7 @@ export default function QRCodePage() {
                 <button 
                   onClick={enviarPedido}
                   disabled={enviandoPedido || carrinho.length === 0}
-                  className="w-full rounded-md bg-amber-500 py-3 px-4 text-center font-medium text-white hover:bg-amber-600 disabled:opacity-50"
+                  className="w-full rounded-md bg-amber-500 py-3 px-4 text-center font-medium text-white hover:bg-amber-600 disabled:opacity-50 transition duration-200"
                 >
                   {enviandoPedido ? 'Enviando...' : 'Finalizar Pedido'}
                 </button>
